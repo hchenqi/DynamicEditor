@@ -36,7 +36,37 @@ If the types an item can possibly have can't be enumerated, then the item has tr
 
 > We can consider a string with arbitrary length has true dynamic type because the length of a string can't be simply enumerated if we ignore a size limit. Similarly, we can think that an integer also has true dynamic type because we can't enumerate all integers.
 
-### Data / Program / Runtime
+### Data / Function / Runtime
+
+Data has a certain type.
+
+> T
+
+A function interprets data in a certain type. Which type of data it will interpret is assigned beforehand, but the actual content of the data is not known until it reads the data at runtime.
+
+> F(T)
+
+At runtime a function is being run with its input data, which then outputs a new function and new data for it to interpret. This process continues.
+
+> T, F(T) -> T', F'(T') -> ...
+
+For a fixed function, data is variable. For the runtime, functions and data are variable.
+
+A function is of fixed size and contains enumerable content. Runtime can be of arbitrary size, but at a fixed time point, it also contains enumerable content.
+
+Examples:
+
+- Data with union type T of sub-types <T1, T2, ..., Tn> is stored as { tag, payload } with tag being an integer index of the payload type (1, 2, ..., n) and payload being data in that type. Its interpreter function F(T) is a mapping between integer indices and sub-interpreters accepting the corresponding sub-types { 1: F1(T1), 2: F2(T2), ..., n: Fn(Tn) }. The runtime takes data { tag, payload } with type T and function F(T), reads the data tag i, and produces { payload } with type Ti and function Fi.
+
+> T <T1, T2, ..., Tn> { tag, payload }, F { 1: F1(T1), 2: F2(T2), ..., n: Fn(Tn) } -> Ti { payload }, Fi(Ti)
+
+- Interpreter function F for data with empty type T = {} gives output of data with a certain type T' and function F'. We can say that F contains T' and F'(T').
+
+> {}, F({}) -> T', F'(T')
+
+- Data with union type T of sub-types <T1, T2, ..., Tn>, where each Ti is an empty type, has empty payload and is stored just as { tag } with tag being the integer index. Its interpreter function F(T) maps the tag to the empty type and the corresponding sub-function.
+
+> T <T1 {}, T2 {}, ..., Tn {}> { tag }, F { 1: F1({}), 2: F2({}), ..., n: Fn({}) } -> {}, Fi({})
 
 
 
