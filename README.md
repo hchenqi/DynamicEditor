@@ -46,21 +46,21 @@ A function interprets data in a certain type. Which type of data it will interpr
 
 > F(T)
 
-The runtimes calls a function with its input data and then outputs a new function and new data for it to interpret.
+The runtime calls a function with its input data and then outputs a new function and new data for the output function to interpret.
 
 > t: T, F(T) -> t': T', F'(T')
 
 This process continues.
 
-> t: T, F(T) -> t': T', F'(T') -> ...
+> t: T, F(T) -> t': T', F'(T') -> t": T", F"(T") -> ...
 
 For a fixed function, data is variable. For the runtime, functions and data are variable.
 
-A function is of fixed size and contains enumerable content. Runtime can be of arbitrary size, but at a fixed time point, it also contains enumerable content.
+A function is of fixed size and contains enumerable content. The runtime can be of arbitrary size, but at a fixed time point, it is also of fixed size and contains enumerable content.
 
 Examples:
 
-- Data with union type T of sub-types <T1, T2, ..., Tn> is stored as { tag, payload } with tag being an integer index of the payload type (1, 2, ..., n) and payload being data in that type. Its interpreter function F(T) is a mapping between integer indices and sub-interpreters accepting the corresponding sub-types { 1 ~ F1(T1), 2 ~ F2(T2), ..., n ~ Fn(Tn) }. The runtime takes data { tag, payload } with type T and function F(T), reads the data tag i, and produces { payload } with type Ti and function Fi.
+- Data with union type T of sub-types <T1, T2, ..., Tn> is stored as a tuple { tag, payload } with tag being an integer index of the payload type (1, 2, ..., n) and payload being data in that type. Its interpreter function F(T) is a mapping between integer indices and sub-interpreters accepting the corresponding sub-types { 1 ~ F1(T1), 2 ~ F2(T2), ..., n ~ Fn(Tn) }. The runtime takes data { tag, payload } with type T and function F(T), reads the data tag i, and produces { payload } with type Ti and function Fi.
 
   > { tag, payload }: T <T1, T2, ..., Tn>, F { 1 ~ F1(T1), 2 ~ F2(T2), ..., n ~ Fn(Tn) } -> payload: Ti, Fi(Ti)
 
@@ -68,7 +68,7 @@ Examples:
 
   > {}, F({}) -> t': T', F'(T')
 
-- Data with union type T of sub-types <T1, T2, ..., Tn>, where each sub-type Ti is an empty type, has empty payload and is stored just as { tag } with tag being the integer index. Its interpreter function F(T) maps the tag to the empty type and the corresponding sub-function.
+- Data with union type T of sub-types <T1, T2, ..., Tn>, where each sub-type Ti is an empty type, has empty payload and is stored just as { tag } with tag being the integer index. Its interpreter function F(T) maps the tag to the empty type and the corresponding sub-interpreter function.
 
   > { tag }: T <T1 {}, T2 {}, ..., Tn {}>, F { 1 ~ F1({}), 2 ~ F2({}), ..., n ~ Fn({}) } -> {}, Fi({})
 
@@ -76,17 +76,37 @@ Examples:
 
   > t: T, F(T) -> {}, F'({})
 
-- Exist functions that take empty data as input and output empty data and the same constant function. This could be seen as the ending state of the runtime.
+- Specially, exists a constant function that takes empty data as input and outputs empty data and the same constant function. This could be seen as the ending state of the runtime.
 
   > {}, F({}) -> {}, F({})
 
-- Data with tuple type T of sub-types T1, T2, ..., Tn is stored as { T1, T2, ..., Tn }. The interpreter function F(T) can be constructed from the interpreter functions Fi(Ti), with each of them interpreting the corresponding part of data with type T.
+- Data with tuple type T of sub-types T1, T2, ..., Tn is stored as { T1, T2, ..., Tn }. The interpreter function F(T) can be constructed from the functions Fi(Ti) each interpreting the corresponding part of data with type Ti.
 
   > { t1: T1, t2: T2, ..., tn: Tn }: T, F(T) { F1(T1), F2(T2), ..., Fn(Tn) } -> { t1': T1', t2': T2', ..., tn': Tn' }: T', F'(T') { F1'(T1'), F2'(T2'), ..., Fn'(Tn') }
 
-- Data with dynamic length array type T[n] is stored as { n, T, T, ..., T } (n times T). The interpreter function stores only one copy of interpreter for T F0(T). The runtime reads the length n and outputs the tuple of { T, T, ..., T } and the interpreter function for the tuple. This output interpreter function only exists at runtime, because it is of arbitrary size depending on the data.
+- Data with dynamic length array type T[] is stored as { n, T, T, ..., T } (with n times T). The interpreter function stores only one copy of F0(T) interpreting T. The runtime reads the length n and outputs tuple T[n] = { T, T, ..., T } (n times T) and the interpreter function for the tuple. This output function only exists at runtime, because it is of arbitrary size depending on the data.
 
-  > { n, t1: T, t2: T, ..., tn: T }: T[n], F(T[n]) { F0(T) } -> { t1: T, t2: T, ..., tn: T }: T', F'(T') { F0(T), F0(T), ..., F0(T) }
+  > { n, t1: T, t2: T, ..., tn: T }: T[], F(T[]) { F0(T) } -> { t1: T, t2: T, ..., tn: T }: T[n], F'(T[n]) { F0(T), F0(T), ..., F0(T) }
+
+- With a fixed length n = k, the output function above can be stored for interpreting data with constant length array type T[k], which is the tuple { T, T, ..., T } (k times T).
+
+  > { t1: T, t2: T, ..., tk: T }: T[k], F(T[k]) -> { t1': T', t2': T', ..., tk': T' }: T'[k], F'(T'[k])
+
+### Function Construction
+
+Function interpreting data at runtime is when data guides the transformation of the function. Information flows from data to function.
+
+Function can be constructed by following principles:
+
+- Given functions F1(T1), F2(T2), ..., Fn(Tn) in order, a union dispatcher function F(T) can be constructed with T being the tagged union type of T1, T2, ... Tn.
+
+- Given a union dispatcher function F(T) with T being a tagged union type of T1, T2, ... Tn and an integer index i among 1, 2, ..., n, the interpreter function for Ti can be constructed by extracting the ith interpreter function from F(T).
+
+- Given functions F1(T1), F2(T2), ..., Fn(Tn) in order, a tuple interpreter function F(T) can be constructed with T being the tuple of T1, T2, ..., Tn.
+
+Data stores the construction guide for a function at runtime. In this sense, data seems to be the function and function be the data.
+
+### Type Template
 
 
 
