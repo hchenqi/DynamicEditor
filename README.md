@@ -106,7 +106,25 @@ Function can be constructed by following principles:
 
 Data stores the construction guide for a function at runtime. In this sense, data seems to be the function and function be the data.
 
-### Type Template
+### Type Registry
+
+Interpreter functions for union and tuple can also be constructed at runtime.
+
+There are functions for constructing union and tuple interpreter functions based on the guide stored in data. These constructor functions act like type templates because the types forming union and tuples are not given before data is being read.
+
+Functions F1(T1), F2(T2), ..., Fn(Tn) where T1, T2, ..., Tn are basic types can be kept in a type registry, each with a unique reference. Other functions can be constructed on them by constructor functions.
+
+For example:
+
+- Data of the tuple constructor function stores a list of indices to functions in the type registry { rF1, rF2, ..., rFk } along with the payload. The tuple constructor function C reads data and constructs a tuple interpreter function by looking up the corresponding function for each of the type reference in the type registry R = { rF1 ~ F1(T1), rF2 ~ F2(T2), ..., rFn ~ Fk(Tn) }.
+
+  > { { k, rF1, rF2, ..., rFk }, payload }, C { R } -> payload: T { T1, T2, ..., Tk }, F(T) { F1(T1), F2(T2), ..., Fk(Tk) }
+
+The newly constructed function can be put back in the type registry and referenced by a new reference for constructing more functions.
+
+Moreover, the constructor functions themselves can also be put in the registry. Now any data only needs to refer to a function in the registry to be interpreted. This looks just like the layout for union typed data.
+
+> { rF, payload }, R -> payload: T, F(T)
 
 
 
