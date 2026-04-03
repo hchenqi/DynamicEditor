@@ -72,7 +72,7 @@ Examples:
 
   > t: T, F(T) -> {}, F'({})
 
-- An item with tuple type T of sub-types <T1, T2, ..., Tn> is stored as a tuple `{ t1: T1, t2: T2, ..., tn: Tn }`. The interpreter function F(T) can be constructed from the interpreter functions Fi(Ti) each interpreting the corresponding sub-item with type Ti.
+- An item with tuple type T of sub-types { T1, T2, ..., Tn } is stored as a tuple `{ t1: T1, t2: T2, ..., tn: Tn }`. The interpreter function F(T) can be constructed from the interpreter functions Fi(Ti) each interpreting the corresponding sub-item with type Ti.
 
   > { t1: T1, t2: T2, ..., tn: Tn }: T, F(T) { F1(T1), F2(T2), ..., Fn(Tn) } -> { t1': T1', t2': T2', ..., tn': Tn' }: T', F'(T') { F1'(T1'), F2'(T2'), ..., Fn'(Tn') }
 
@@ -94,7 +94,7 @@ Interpreter functions can be constructed by following principles:
 
 - Given a union interpreter function F(T) with T being the union type of sub-types <T1, T2, ..., Tn> and an integer index i in (1, 2, ..., n), the interpreter function for Ti can be constructed by copying the ith sub- interpreter function Fi(Ti) from F(T).
 
-- Given interpreter functions F1(T1), F2(T2), ..., Fn(Tn) in order, a tuple interpreter function F(T) can be constructed with T being the tuple type of sub-types <T1, T2, ..., Tn>.
+- Given interpreter functions F1(T1), F2(T2), ..., Fn(Tn) in order, a tuple interpreter function F(T) can be constructed with T being the tuple type of sub-types { T1, T2, ..., Tn }.
 
 ### Constructor Function and Type Registry
 
@@ -136,7 +136,35 @@ For example:
 
 Thus, functions are also data. This allows for them to be identified and reused.
 
+### Construction of Item Data
 
+The item data is constructed according to the construction of its interpreter function. This is the reverse process of interpreting an item.
+
+For example:
+
+- Given a sub-item ti with type Ti, an item with union type T of sub-types <T1, T2, ..., Tn> where i is in (1, 2, ..., n) can be constructed by attaching the tag i to the data of the sub-item.
+
+  > ti: Ti --> { i, ti: Ti }: T <T1, T2, ..., Tn>, F(T) { 1 ~ F1(T1), 2 ~ F2(T2), ..., n ~ Fn(Tn) }
+
+- Given sub-items t1, t2, ..., tn with type T1, T2, ..., Tn respectively, an item with tuple type T { T1, T2, ..., Tn } can be constructed by putting the data of the sub-items together.
+
+  > t1: T1, t2: T2, ..., tn: Tn --> { t1: T1, t2: T2, ..., tn: Tn }: T, F(T) { F1(T1), F2(T2), ..., Fn(Tn) }
+
+- Given an item with tuple type T { T1, T2, ..., Tn } and the references of interpreter functions { rF1, rF2, ..., rFn } for each of the sub-item in the type registry, an item with arbitrary tuple type T' can be constructed by attaching the reference list to the tuple.
+
+  > { t1: T1, t2: T2, ..., tn: Tn }: T --> { { n, rF1, rF2, ..., rFn }, { t1: T1, t2: T2, ..., tn: Tn }: T }: T', C(T') { R }
+
+- Given an item t with type T and the reference of its interpreter function rF in the type registry, an item with any type can be constructed by attaching the reference to the item data.
+
+  > t: T --> { rF, t: T }: T', C(T') { R }
+
+- Given an item with union type T of sub-types <T1, T2, ..., Tn> and the references of interpreter functions { rF1, rF2, ..., rFn } for each of the sub-type in the type registry, an item with arbitrary union type T' can be constructed by attaching the reference list to the item data.
+
+  > { i, ti: Ti }: T <T1, T2, ..., Tn> --> { { n, rF1, rF2, ..., rFn }, { i, ti: Ti }: T }: T', C(T') { R }
+
+  One might notice that this could possibly be simplified to an item with any type by just keeping the ith interpreter function reference:
+
+  > { { n, rF1, rF2, ..., rFn }, { i, ti: Ti }: T }: T', C(T') { R } => { rFi, ti: Ti }: T'', C'(T'') { R }
 
 ## Components
 
