@@ -120,13 +120,21 @@ For example:
 
   > { { rF, l }, payload }: T, C(T) { R } -> payload: T'[l], F(T'[l]) { F(T'), F(T'), ..., F(T') }
 
-The newly constructed interpreter functions can be put back in the type registry having their own references.
-
 Moreover, the constructor functions themselves can be put in the type registry. This allows for interpreting items with any type.
 
-- An item with any type stores the reference to an interpreter function along with the payload data. The any constructor function reads the reference and constructs the interpreter function for the payload. This resembles to how an item with union type is interpreted. 
+- An item with any type stores the reference to an interpreter function along with the payload data. The any constructor function reads the reference and constructs the interpreter function for the payload. This resembles to how an item with union type is interpreted.
 
   > { rF, payload }: T, C(T) { R } -> payload: T', F(T')
+
+The constructed interpreter functions can be put back in the type registry having their own references. They can be stored in the constructed form, or stored as the construction guide with a fixed constructor function.
+
+For example:
+
+- The constructed tuple interpreter function can be stored as `{ rC, { k, rF1, rF2, ..., rFk } }` in the type registry where rC is the reference to the tuple constructor function.
+
+  > { rF, payload }: T, C(T) { ...R, rF ~ { rC', { k, rF1, rF2, ..., rFk } } } -> { { k, rF1, rF2, ..., rFk }, payload }: T', C'(T') { R }
+
+Thus, functions are also data. This allows for them to be identified and reused.
 
 
 
