@@ -12,7 +12,7 @@ This project can be built with CMake on Windows. It depends on two other major p
 
 Item is a logical unit of data in a hierarchy. An item can contain sub-items, and can be contained in a parent item.
 
-Block is the storage unit. Each block has an upper size limit, and exposes an reference. Items are stored in blocks, and block boundary is naturally item boundary. Items larger than blocks must be stored in multiple blocks as sub-items linked by their references.
+Block is the storage unit. Each block has an upper size limit, and exposes an reference. Items are stored in blocks, and block boundary is naturally item boundary. An item larger than a block must be divided into sub-items and stored in multiple blocks linked by their references.
 
 ### Data Type / View Type
 
@@ -26,7 +26,7 @@ Data type describes the layout of the item data. View type describes how data in
 
 Item with static type doesn't store type information as the interpreter already knows its type and directly reads its data. Item with dynamic type stores type information along with its data for the interpreter to know how to interpret the data.
 
-> If the item need to be static or dynamic is relative to the program that interprets it. For example, if a program that reads a string knows how long the string should be, then it's not necessary to also store the length of the string. On the contrary, if the program handles strings with dynamic lengths, the length need to be stored along with the string. And in an extreme case, when the program already knows what the string exactly is, then the string doesn't need to be stored in item data at all.
+> If the item need to be static or dynamic is relative to the program that interprets it. For example, if a program that reads a string knows how long the string should be, then it's not necessary to also store the length of the string. If the program handles strings with dynamic lengths, the length need to be stored along with the string. And when the program already knows what the string exactly is, then the string doesn't need to be stored in item data at all.
 
 > One could also say, that every item has static type, because every item has to be interpreted by a certain interpreter and not by the others. Items with dynamic type are just to be interpreted by the dynamic type interpreter, regardless of how the interpreter internally work.
 
@@ -36,9 +36,9 @@ If the types an item can possibly have can't be enumerated, then the item has tr
 
 > We can consider a string with arbitrary length has true dynamic type because the length of a string can't be simply enumerated if we ignore a size limit. Similarly, we can think that an integer also has true dynamic type because we can't enumerate all integers.
 
-### Item / Interpreter Function / Runtime
+### Item / Type / Interpreter Function / Runtime
 
-Item `t` has a certain type T.
+Item t has a certain type T.
 
 > t: T
 
@@ -46,29 +46,29 @@ An interpreter function F(T) interprets item with type T. The item type is fixed
 
 > F(T)
 
-The runtime calls an interpreter function with input item and then outputs a new interpreter function and a new item for the output interpreter function to interpret.
+At runtime an interpreter function receives an input item and then outputs a new interpreter function and a new item for the output interpreter function to interpret.
 
 > t: T, F(T) -> t': T', F'(T')
 
-For a fixed interpreter function, item is variable. For the runtime, interpreter functions and items are variable.
+For a fixed interpreter function, item is variable. At runtime, interpreter functions and items are both variable.
 
-An interpreter function is of fixed size and contains enumerable content. The runtime can be of arbitrary size, but at a fixed time point, it is also of fixed size and contains enumerable content.
+An interpreter function is of fixed size and contains enumerable content. At runtime it can be of arbitrary size, but at a fixed time point, it is still of fixed size.
 
 Examples:
 
-- An item with union type T of sub-types <T1, T2, ..., Tn> is stored as a tuple `{ tag, payload }` with tag being an integer index of the payload type in (1, 2, ..., n) and payload being sub-item in that type. Its interpreter function F(T) is a mapping between integer indices and sub- interpreter functions accepting the corresponding sub-types { 1 ~ F1(T1), 2 ~ F2(T2), ..., n ~ Fn(Tn) }. The runtime takes item `{ tag, payload }` with type T and interpreter function F(T), reads the tag i, and produces item `payload` with type Ti and interpreter function Fi.
+- An item with union type T of sub-types < T1, T2, ..., Tn > is stored as a tuple `{ i, payload }` with i being an integer index of the payload type in (1, 2, ..., n) and payload being sub-item in that type. Its interpreter function F(T) is a mapping between integer indices and sub- interpreter functions accepting the corresponding sub-types { 1 ~ F1(T1), 2 ~ F2(T2), ..., n ~ Fn(Tn) }. At runtime it receives the item, reads i, and produces an item just as `payload` with type Ti and interpreter function Fi.
 
-  > { tag, payload }: T <T1, T2, ..., Tn>, F(T) { 1 ~ F1(T1), 2 ~ F2(T2), ..., n ~ Fn(Tn) } -> payload: Ti, Fi(Ti)
+  > { i, payload: Ti }: T < T1, T2, ..., Tn >, F(T) { 1 ~ F1(T1), 2 ~ F2(T2), ..., n ~ Fn(Tn) } -> payload: Ti, Fi(Ti)
 
-- Interpreter function F for items with empty type `{}` gives constant output of item with a certain type T' and interpreter function F'. We can also say that F is a constant function constructed by combining an item t' with type T' and F'(T').
+- An interpreter function F for items with empty type {} gives constant output of an item with a certain type T and an interpreter function F'. We can also say that F is a constant function constructed by combining an item t with type T and F'(T).
 
-  > {}, F({}) -> t': T', F'(T')
+  > {}, F({}) -> t: T, F'(T)
 
-- An item with union type T of sub-types <T1, T2, ..., Tn>, where each sub-type Ti is an empty type, has empty payload and is stored just as `tag` with tag being the integer index. Its interpreter function F(T) maps the indices to the corresponding sub- interpreter functions which are constant functions.
+- An item with union type T of sub-types < T1, T2, ..., Tn >, where each sub-type Ti is an empty type, has empty payload and is stored just as the integer index `i`. Its interpreter function F(T) maps the indices to the corresponding sub- interpreter functions which are constant functions.
 
-  > tag: T <T1 {}, T2 {}, ..., Tn {}>, F(T) { 1 ~ F1({}), 2 ~ F2({}), ..., n ~ Fn({}) } -> {}, Fi({})
+  > i: T < T1 {}, T2 {}, ..., Tn {} >, F(T) { 1 ~ F1({}), 2 ~ F2({}), ..., n ~ Fn({}) } -> {}, Fi({})
 
-- Exist functions for a certain input type that output item with empty type and a constant function.
+- Exist functions that receive a certain input type and output items with empty type and constant functions.
 
   > t: T, F(T) -> {}, F'({})
 
@@ -90,81 +90,80 @@ Interpreter functions interpreting items at runtime is when items guide the cons
 
 Interpreter functions can be constructed by following principles:
 
-- Given interpreter functions F1(T1), F2(T2), ..., Fn(Tn) in order, a union interpreter function F(T) can be constructed with T being the union type of sub-types <T1, T2, ..., Tn>.
+- Given interpreter functions F1(T1), F2(T2), ..., Fn(Tn), a union interpreter function F(T) can be constructed with T being the union type of sub-types < T1, T2, ..., Tn >.
 
-- Given a union interpreter function F(T) with T being the union type of sub-types <T1, T2, ..., Tn> and an integer index i in (1, 2, ..., n), the interpreter function for Ti can be constructed by copying the ith sub- interpreter function Fi(Ti) from F(T).
+- Given a union interpreter function F(T) with T being the union type of sub-types < T1, T2, ..., Tn > and an integer index i in (1, 2, ..., n), the interpreter function for Ti can be constructed by copying the ith sub- interpreter function Fi(Ti) from F(T).
 
-- Given interpreter functions F1(T1), F2(T2), ..., Fn(Tn) in order, a tuple interpreter function F(T) can be constructed with T being the tuple type of sub-types { T1, T2, ..., Tn }.
+- Given interpreter functions F1(T1), F2(T2), ..., Fn(Tn), a tuple interpreter function F(T) can be constructed with T being the tuple type of sub-types { T1, T2, ..., Tn }.
 
 ### Constructor Function and Type Registry
 
-An item with dynamic type stores the construction guide for the interpreter function of its data. The interpreter function for the item can also be called a constructor function.
+An item with dynamic type stores the construction guide for the interpreter function of its data. The interpreter function for the item can also be called a constructor function for the output interpreter function.
 
 A union interpreter function is a constructor function with the integer index stored in the item being the construction guide.
 
 There are also constructor functions for constructing union and tuple interpreter functions at runtime.
 
-Basic interpreter functions F1(T1), F2(T2), ..., Fn(Tn) where T1, T2, ..., Tn are basic types can be kept in a type registry, each with a unique reference. Other interpreter functions can be constructed with them by certain constructor functions.
+Basic interpreter functions F1(TF1), F2(TF2), ..., Fm(TFm) where TF1, TF2, ..., TFm are derived from basic types T1, T2, ..., Tn can be kept in a type registry, each with a unique reference. Other interpreter functions can be constructed with them by certain constructor functions. Multiple interpreter functions can share the same type for the input item but interpret in different ways.
 
 For example:
 
-- An item with arbitrary tuple type stores a list of references to interpreter functions in the type registry { rF1, rF2, ..., rFk } along with the payload data. The interpreter function for this item, the tuple constructor function C, reads the list of references and constructs a tuple interpreter function by looking up the corresponding interpreter functions in the type registry R = { rF1 ~ F1(T1), rF2 ~ F2(T2), ..., rFn ~ Fn(Tn) }.
+- An item with arbitrary tuple type stores a list of references to interpreter functions in the type registry { rF1, rF2, ..., rFk } along with the payload tuple. The interpreter function for this item, the tuple constructor function, reads the list of references and constructs a tuple interpreter function by looking up the corresponding interpreter functions in the type registry R = { rF1 ~ F1(TF1), rF2 ~ F2(TF2), ..., rFm ~ Fm(TFm) }.
 
-  > { { k, rF1, rF2, ..., rFk }, payload }: T, C(T) { R } -> payload: T' { T1, T2, ..., Tk }, F(T') { F1(T1), F2(T2), ..., Fk(Tk) }
+  > { { k, rF1, rF2, ..., rFk }, { t1: T1, t2: T2, ..., tk: Tk } }: T, F(T) { R } -> { t1: T1, t2: T2, ..., tk: Tk }: T', F'(T') { F1(T1), F2(T2), ..., Fk(Tk) }
 
-- Similarly, an item with arbitrary union type stores a list of references to interpreter functions in the type registry along with the payload data. The union constructor function C reads the list of references and constructs a union interpreter function.
+- Similarly, an item with arbitrary union type stores a list of references to interpreter functions in the type registry along with the payload union. The union constructor function reads the list of references and constructs a union interpreter function.
 
-  > { { k, rF1, rF2, ..., rFk }, payload }: T, C(T) { R } -> payload { tag, payload' }: T', F(T') { 1 ~ F1(T1), 2 ~ F2(T2), ..., k ~ Fk(Tk) }
+  > { { k, rF1, rF2, ..., rFk }, { i, payload } }: T, F(T) { R } -> { i, payload }: T', F'(T') { 1 ~ F1(T1), 2 ~ F2(T2), ..., k ~ Fk(Tk) }
 
-- An item with dynamic length arbitrary array type stores the reference to the interpreter function for a single sub-item in the type registry and the length of the array along with the payload data. The array constructor function reads the reference and the length and constructs a constant length array interpreter function.
+- An item with arbitrary type dynamic length array type stores the reference to the interpreter function for a single sub-item in the type registry and the length of the array along with the payload array. The array constructor function reads the reference and the length and constructs a constant length array interpreter function.
 
-  > { { rF, l }, payload }: T, C(T) { R } -> payload: T'[l], F(T'[l]) { F(T'), F(T'), ..., F(T') }
+  > { { rF0, l }, t: T'[l] }: T, F(T) { R } -> t: T'[l], F'(T'[l]) { F0(T'), F0(T'), ..., F0(T') }
 
 Moreover, the constructor functions themselves can be put in the type registry. This allows for interpreting items with any type.
 
 - An item with any type stores the reference to an interpreter function along with the payload data. The any constructor function reads the reference and constructs the interpreter function for the payload. This resembles to how an item with union type is interpreted.
 
-  > { rF, payload }: T, C(T) { R } -> payload: T', F(T')
+  > { rF', payload: T' }: T, F(T) { R } -> payload: T', F'(T')
 
-The constructed interpreter functions can be put back in the type registry having their own references. They can be stored in the constructed form, or stored as the construction guide with a fixed constructor function.
-
-For example:
-
-- The constructed tuple interpreter function can be stored as `{ rC, { k, rF1, rF2, ..., rFk } }` in the type registry where rC is the reference to the tuple constructor function.
-
-  > { rF, payload }: T, C(T) { ...R, rF ~ { rC', { k, rF1, rF2, ..., rFk } } } -> { { k, rF1, rF2, ..., rFk }, payload }: T', C'(T') { R }
-
-Thus, functions are also data. This allows for them to be identified and reused.
-
-### Construction of Item Data
-
-The item data is constructed according to the construction of its interpreter function. This is the reverse process of interpreting an item.
+The constructed interpreter functions can also be stored in the type registry having their own references. They can be stored in the constructed form, or as the construction guide for a fixed constructor function.
 
 For example:
 
-- Given a sub-item ti with type Ti, an item with union type T of sub-types <T1, T2, ..., Tn> where i is in (1, 2, ..., n) can be constructed by attaching the tag i to the data of the sub-item.
+- Tuple interpreter function for items with tuple type of sub-types { T1, T2, ..., Tk } can be stored as `{ rFC, { k, rF1, rF2, ..., rFk } }` in the type registry where rFC is the reference to the tuple constructor function FC.
 
-  > ti: Ti --> { i, ti: Ti }: T <T1, T2, ..., Tn>, F(T) { 1 ~ F1(T1), 2 ~ F2(T2), ..., n ~ Fn(Tn) }
+  > { rF, { t1: T1, t2: T2, ..., tk: Tk } }: T, F'(T) { R, rF ~ { rFC, { k, rF1, rF2, ..., rFk } } } => { { k, rF1, rF2, ..., rFk }, { t1: T1, t2: T2, ..., tk: Tk } }: T', FC(T') { R }
 
-- Given sub-items t1, t2, ..., tn with type T1, T2, ..., Tn respectively, an item with tuple type T { T1, T2, ..., Tn } can be constructed by putting the data of the sub-items together.
+### Construction of Item
 
-  > t1: T1, t2: T2, ..., tn: Tn --> { t1: T1, t2: T2, ..., tn: Tn }: T, F(T) { F1(T1), F2(T2), ..., Fn(Tn) }
+An item is constructed according to the construction of its interpreter function. This is the reverse process of interpreting an item.
 
-- Given an item with tuple type T { T1, T2, ..., Tn } and the references of interpreter functions { rF1, rF2, ..., rFn } for each of the sub-item in the type registry, an item with arbitrary tuple type T' can be constructed by attaching the reference list to the tuple.
+For example:
 
-  > { t1: T1, t2: T2, ..., tn: Tn }: T --> { { n, rF1, rF2, ..., rFn }, { t1: T1, t2: T2, ..., tn: Tn }: T }: T', C(T') { R }
+- Given a sub-item ti with type Ti, an item with union type T of sub-types < T1, T2, ..., Tn > where i is in (1, 2, ..., n) can be constructed by attaching the index i to the sub-item.
 
-- Given an item t with type T and the reference of its interpreter function rF in the type registry, an item with any type can be constructed by attaching the reference to the item data.
+  > ti: Ti --> { i, ti: Ti }: T < T1, T2, ..., Tn >
 
-  > t: T --> { rF, t: T }: T', C(T') { R }
+- Given sub-items t1, t2, ..., tn with type T1, T2, ..., Tn respectively, an item with tuple type T { T1, T2, ..., Tn } can be constructed by putting the sub-items together.
 
-- Given an item with union type T of sub-types <T1, T2, ..., Tn> and the references of interpreter functions { rF1, rF2, ..., rFn } for each of the sub-type in the type registry, an item with arbitrary union type T' can be constructed by attaching the reference list to the item data.
+  > t1: T1, t2: T2, ..., tn: Tn --> { t1: T1, t2: T2, ..., tn: Tn }: T
 
-  > { i, ti: Ti }: T <T1, T2, ..., Tn> --> { { n, rF1, rF2, ..., rFn }, { i, ti: Ti }: T }: T', C(T') { R }
+- Given an item with tuple type T { T1, T2, ..., Tn } and the references of interpreter functions { rF1, rF2, ..., rFn } for each of the sub-item in the type registry, an item with arbitrary tuple type T' can be constructed by attaching the reference list to the original item.
+
+  > { t1: T1, t2: T2, ..., tn: Tn }: T --> { { n, rF1, rF2, ..., rFn }, { t1: T1, t2: T2, ..., tn: Tn }: T }: T'
+
+- Given an item t with type T and the reference of its interpreter function rF in the type registry, an item with any type can be constructed by attaching the reference to the original item.
+
+  > t: T --> { rF, t: T }: T'
+
+- Given an item with union type T of sub-types < T1, T2, ..., Tn > and the references of interpreter functions { rF1, rF2, ..., rFn } for each of the sub-type in the type registry, an item with arbitrary union type T' can be constructed by attaching the reference list to the original item.
+
+  > { i, ti: Ti }: T < T1, T2, ..., Tn > --> { { n, rF1, rF2, ..., rFn }, { i, ti: Ti }: T }: T'
 
   One might notice that this could possibly be simplified to an item with any type by just keeping the ith interpreter function reference:
 
-  > { { n, rF1, rF2, ..., rFn }, { i, ti: Ti }: T }: T', C(T') { R } => { rFi, ti: Ti }: T'', C'(T'') { R }
+  > { { n, rF1, rF2, ..., rFn }, { i, ti: Ti } }: T => { rFi, ti: Ti }: T'
+
 
 ## Components
 
