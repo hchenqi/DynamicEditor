@@ -182,7 +182,7 @@ The construction guide stored in each item with the same type could be shared an
 
 These construction guides can be called descriptors and dynamically added in a `descriptor registry`, each unique and with a unique reference.
 
-Like an item with any type storing the reference to the interpreter function for its payload data, an item with descriptor type stores the reference to the descriptor that guides the construction of the interpreter function for its payload data.
+Like an item with any type storing the reference to the interpreter function for its payload data, an item with descriptor any type stores the reference to the descriptor that guides the construction of the interpreter function for its payload data.
 
 For example:
 
@@ -216,17 +216,63 @@ This project uses `WndDesign` as the GUI library.
 
 All view components are derived from the component base class `WndObject` and various template components that calculate layouts, draw contents and deliver messages by different ways.
 
-### Type and Interpreter Function
+### Core
+
+#### ItemView
+
+`ItemView` is the base view class for an item. It is inherited and implemented by specific view types. The class constructor of a class inheriting `ItemView` is a basic interpreter function for an item.
+
+Each `ItemView` has a parent `ItemView`, except when it's the root item of a `BlockView`. The parent `ItemView` or the `BlockView` calls the constructor of an `ItemView` providing the `DeserializeContext` as the item for it to interpret.
+
+An `ItemView` can modify its data and construct a new item. It notifies its parent `ItemView` about its data change which then updates the parent item until `BlockView`.
+
+#### BlockView
+
+`BlockView` marks block boundaries. It can contain a tree of `ItemView`, and can itself be contained in a `RefView` as inline expansion of an item with Ref type.
+
+`BlockView` provides the initial `DeserializeContext` from the block for its root item and stores the updated root item to the block.
+
+#### Interpreter
 
 The basic item types are:
 - Empty: `void`
 - Boolean: `bool`
 - Integer: `int`
 - String: `std::string`
-- Ref: `block_ref`
+- Ref: `std::pair<interpreter_ref, block_ref>`
 
-All constructed item types are based on descriptors:
-- Descriptor: `descriptor_ref, ...`
+The constructed item types are:
+- Any: `interpreter_ref, ...`
+- Array: `std::pair<size_t, interpreter_ref>, ...`
+- Tuple: `std::vector<interpreter_ref>, ...`
+- Union: `std::vector<interpreter_ref>, size_t, ...`
+- DescriptorAny: `descriptor_ref, ...`
+
+The basic interpreter functions are provided by the view types inheriting `ItemView`:
+- EmptyView
+- BooleanView
+- IntegerView
+- StringView
+- RefView
+(constructor functions)
+- AnyView
+- ArrayView
+- TupleView
+- UnionView
+- DescriptorAnyView
+
+The list of basic interpreter functions including constructor functions can be extended.
+
+The reference type of basic interpreter functions is:
+- interpreter_ref: `size_t`
+
+Each basic interpreter function class is registered in the `InterpreterRegistry` with a fixed order and keeps its `interpreter_ref` statically initialized when registered.
+
+#### Descriptor
+
+`DescriptorAnyView` inheriting `ItemView` provides the interpreter function for items with descriptor any type.
+
+`DescriptorAnyView` looks up the descriptor from `DescriptorRegistry` and instantiates the corresponding `DescriptorView`.
 
 The descriptor types are:
 - BasicDescriptor: `interpreter_ref`
@@ -234,62 +280,15 @@ The descriptor types are:
 - TupleDescriptor: `std::vector<descriptor_ref>`
 - UnionDescriptor: `std::vector<descriptor_ref>`
 
-The basic interpreter functions are provided by:
-- EmptyView
-- BooleanView
-- IntegerView
-- StringView
-- RefView
-- DescriptorView
-- ...
-
-The reference type of interpreter functions is:
-- interpreter_ref: `size_t`
-
-Each basic interpreter function class is registered in the `InterpreterRegistry` with a fixed order and contains its `interpreter_ref` statically initialized when registered.
-
 Each descriptor is registered in the `DescriptorRegistry` which is a set of `block_ref` kept in the data file storing unique descriptors. The reference type of a descriptor is:
 - descriptor_ref: `block_ref` (`block<std::variant<BasicDescriptor, ArrayDescriptor, TupleDescriptor, UnionDescriptor>>`)
 
-The constructed interpreter functions based on descriptors are provided by:
-- BasicConstructorView
-- ArrayConstructorView
-- TupleConstructorView
-- UnionConstructorView
+`DescriptorView` is the base class for a constructor that constructs an interpreter function by a descriptor of a certain descriptor type. It is inherited and implemented by the descriptor view types:
+- BasicDescriptorView
+- ArrayDescriptorView
+- TupleDescriptorView
+- UnionDescriptorView
 
-### View Components
-
-#### ItemView
-
-`ItemView` is the base view class for an item. It is inherited and implemented by specific view types :
-- EmptyView
-- BooleanView
-- IntegerView
-- StringView
-- RefView
-- DescriptorView
-- ...
-
-The class constructor of an `ItemView` is an interpreter function for an item. An `ItemView` is constructed by interpreting the item data.
-
-Each `ItemView` has a parent `ItemView`, except when it's the root item of a block. The parent `ItemView` or the `BlockView` calls the constructor of an `ItemView` providing its data.
-
-An `ItemView` can modify its data and construct a new item. It notifies its parent `ItemView` about its data change which then updates the parent item until the `BlockView` writes the updated root item in the block.
-
-#### BlockView
-
-`BlockView` displays block boundaries. It can contain a tree of `ItemView`, and can itself be contained in an `ItemView` as inline expansion of an item with Ref type.
-
-#### DescriptorView
-
-`DescriptorView` inherits `ItemView`. It constructs the interpreter function for items with descriptor type by looking up the descriptor from `DescriptorRegistry` and instantiating the corresponding `ConstructorView`.
-
-`ConstructorView` is the base class for a constructor that constructs an interpreter functions by a descriptor of a certain descriptor type. It is inherited and implemented by constructors of each descriptor type:
-- BasicConstructorView
-- ArrayConstructorView
-- TupleConstructorView
-- UnionConstructorView
-
-The corresponding `ConstructorView` is instantiated by `DescriptorSelect`. `DescriptorSelect` can modify the descriptor to change the type of the item and reinstantiate the `ConstructorView` based on the new descriptor. The new descriptor either refers to an existing descriptor in `DescriptorRegistry` or is newly added to it.
+The corresponding `DescriptorView` is instantiated by `DescriptorSelect`. `DescriptorSelect` can modify the descriptor to change the type of the item and reinstantiate the `DescriptorView` based on the new descriptor. The new descriptor either refers to an existing descriptor in `DescriptorRegistry` or is newly added in it.
 
 Type conversion is performed when the type of an item is changed.
