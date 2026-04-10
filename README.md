@@ -196,6 +196,106 @@ For example:
 
 A descriptor can contain references to interpreter functions or other descriptors. This makes it possible to have circular references for descriptors.
 
+### Type Conversion
+
+#### Natural Conversion
+
+- A fixed length array T[k] is equivalent to a tuple with k times T.
+  
+  > T[k] = { T, T, ..., T }
+
+- A zero length array of any type T is equivalent to an empty tuple as the empty type.
+
+  > T[0] = {}
+
+- The following types are equivalent:
+  - T
+  - fixed length array T[1]
+  - tuple { T }
+  - union < T >
+
+  > T = T[1] = { T } = < T >
+
+- A fixed length array T[k] can be converted to a dynamic length array T[] with actual length k.
+
+  > { t1: T, t2: T, ..., tk: T }: T[k] => { k, t1: T, t2: T, ..., tk: T }: T[]
+
+- The sub-types of a union don't repeat.
+
+  > < T1, T2, ..., Ti-1, Ti, ..., Ti, ..., Tk > = < T1, T2, ..., Ti-1, Ti, ..., Tk >
+
+- Nested union can be flattened.
+
+  > < T1, T2, ..., < Ti1, Ti2, ..., Tin >, ..., Tk > <=> < T1, T2, ..., Ti1, Ti2, ..., Tin, ..., Tk >
+
+- The sub-types of a union can be extended.
+
+  > { i, ti: Ti }: < T1, T2, ..., Tk > => { i, ti: Ti }: < T1, T2, ..., Tk, ..., Tn >
+
+- The sub-types of a union can be permuted.
+
+  > { i, ti: Ti }: < T1, T2, ..., Tk > <=> { j, ti: Ti }: < T1', T2', ..., Tk'> (Tj' = Ti)
+
+- A tuple can add or remove any empty type as sub-types.
+
+  > { T1, T2, ..., Tk } <=> { T1, T2, ..., {}, ..., Tk }
+
+- Nested tuple can be flattened.
+
+  > { T1, T2, ..., { Ti1, Ti2, ..., Tin }, ..., Tk } <=> { T1, T2, ..., Ti1, Ti2, ..., Tin, ..., Tk }
+
+- The sub-items of a tuple can be permuted.
+
+  > { t1: T1, t2: T2, ..., tk: Tk } <=> { t1': T1', t2': T2', ..., tk': Tk' }
+
+- A union can be distributed in tuple.
+
+  > { < T1, T2, ..., Tk >, T... } <=> < { T1, T... }, { T2, T... }, ..., { Tk, T... } >
+
+#### Restricted Conversion
+
+- A fixed length array T[k] can only be converted from a dynamic length array T[] with actual length k.
+
+  > { k, t1: T, t2: T, ..., tk: T }: T[] => { t1: T, t2: T, ..., tk: T }: T[k]
+
+- A sub-type of a union can be removed if it is not the actual type the union takes.
+
+  > { i, ti: Ti }: < T1, T2, ..., Tk > => { 0, ti: Ti }: < Ti >
+
+#### Extending / Shrinking / Replacing Conversion
+
+- A fixed length array T[k] can be extended by inserting an item of type T at any position.
+
+- A fixed length array can be shrunk by removing any item.
+
+- Multiple fixed length arrays of the same item type can be concatenated.
+
+- A fixed length array can be split into multiple fixed length arrays.
+
+- A tuple can be extended by adding a sub-item at any position.
+
+- A tuple can be shrunk by removing any sub-item.
+
+- A sub-item in a tuple can be replaced by another item of a different type.
+
+- Multiple tuples can be concatenated.
+
+- A tuple can be split into multiple tuples.
+
+#### (Descriptor) Any Type Conversion
+
+- An item can be converted to an item with (descriptor) any type with actual reference of the interpreter(descriptor) for the item.
+
+- (restricted) An item can be converted from an item with (descriptor) any type only when the reference of the interpreter(descriptor) matches the item type.
+
+#### Non Conversion
+
+- A dynamic length array adding or removing items.
+
+- A union reassigning an item with another sub-type of the union.
+
+- An item with (descriptor) any type reassigning an item with another type.
+
 ## Implementation
 
 ### Dependency
@@ -216,7 +316,7 @@ This project uses `WndDesign` as the GUI library.
 
 All view components are derived from the component base class `WndObject` and various template components that calculate layouts, draw contents and deliver messages by different ways.
 
-### Core
+### Type
 
 #### ItemView
 
@@ -288,4 +388,14 @@ From a `descriptor_ref` the corresponding descriptor can be retrieved and a `Des
 - TupleDescriptorView
 - UnionDescriptorView
 
-Type conversion is performed when the type of an item is changed.
+#### Conversion
+
+An item can be converted to an item with `Ref` type by creating a new block for the item.
+
+### Data
+
+The metadata block as the global root block stores the reference to `DescriptorRegistry` and the reference to the root item block which is fixed with descriptor any type.
+
+The root item is initialized as `BasicDescriptor` for `StringView` with an empty string.
+
+### UI
