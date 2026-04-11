@@ -4,7 +4,7 @@ An editor supporting dynamic types and data structures.
 
 ## Build Instructions
 
-This project can be built with CMake on Windows. It depends on two other major projects of mine, `WndDesign` and `BlockStore`.
+This project can be built with CMake on Windows. It depends on two other major projects of mine, `ViewDesign` and `BlockStore`.
 
 ## Concepts
 
@@ -310,11 +310,11 @@ The reference of a block is `block_ref`. With `block_ref` a one can read and wri
 
 Serialization and deserialization between block data and objects are performed by `SerializeContext` and `DeserializeContext`.
 
-#### WndDesign
+#### ViewDesign
 
-This project uses `WndDesign` as the GUI library.
+This project uses `ViewDesign` as the GUI library.
 
-All view components are derived from the component base class `WndObject` and various template components that calculate layouts, draw contents and deliver messages by different ways.
+All view components are derived from the component base class `ViewBase` and various template components that calculate layouts, draw contents and deliver messages by different ways.
 
 ### Type
 
