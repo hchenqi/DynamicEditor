@@ -13,24 +13,22 @@ using namespace BlockStore;
 
 struct MainWindowStyle : TitleBarWindow::Style {
 	MainWindowStyle() {
-		width.normal(800px);
-		height.normal(500px);
-		title.text.assign(L"DynamicEditor");
+		title.text.assign(u"DynamicEditor");
 	}
 };
 
 
 class Editor : public EditBox {
 public:
-	Editor(block<std::wstring> ref) : EditBox(Style{}, ref.read([] { return L"Type here..."; })), ref(std::move(ref)) {}
+	Editor(block<u16string> ref) : EditBox(Style{}, ref.read([] { return u"Type here..."; })), ref(std::move(ref)) {}
 private:
-	block<std::wstring> ref;
+	block<u16string> ref;
 private:
 	virtual void OnTextUpdate() override { EditBox::OnTextUpdate(); ref.write(text); }
 };
 
 
-int main() {
+void App() {
 	BlockManager manager("data.db");
 	desktop.AddWindow(
 		new TitleBarWindow(
@@ -41,5 +39,4 @@ int main() {
 		)
 	);
 	desktop.EventLoop();
-	return 0;
 }
