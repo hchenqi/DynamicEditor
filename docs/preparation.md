@@ -1,10 +1,4 @@
-# DynamicEditor
-
-An editor supporting dynamic types and data structures.
-
-## Build Instructions
-
-This project can be built with CMake on Windows. It depends on two other major projects of mine, `ViewDesign` and `BlockStore`.
+# Preparation
 
 ## Concepts
 
@@ -296,7 +290,9 @@ A descriptor can contain references to interpreter functions or other descriptor
 
 - An item with (descriptor) any type reassigning an item with another type.
 
-## Implementation
+## Example
+
+An example is to demonstrate the concepts which can be found in the `BlockStore` project repository.
 
 ### Dependency
 
@@ -309,12 +305,6 @@ A block is allocated by `BlockManager`. `BlockManager` also keeps the metadata f
 The reference of a block is `block_ref`. With `block_ref` a one can read and write the data of a block. A `block_ref` can be serialized to block data and deserialized from block data.
 
 Serialization and deserialization between block data and objects are performed by `SerializeContext` and `DeserializeContext`.
-
-#### ViewDesign
-
-This project uses `ViewDesign` as the GUI library.
-
-All view components are derived from the component base class `ViewBase` and various template components that calculate layouts, draw contents and deliver messages by different ways.
 
 ### Type
 
@@ -387,15 +377,3 @@ From a `descriptor_ref` the corresponding descriptor can be retrieved and a `Des
 - ArrayDescriptorView
 - TupleDescriptorView
 - UnionDescriptorView
-
-#### Conversion
-
-An item can be converted to an item with `Ref` type by creating a new block for the item.
-
-### Data
-
-The metadata block as the global root block stores the reference to `DescriptorRegistry` and the reference to the root item block which is fixed with descriptor any type.
-
-The root item is initialized as `BasicDescriptor` for `StringView` with an empty string.
-
-### UI
