@@ -2,7 +2,7 @@
   "version": 3,
   "configurePresets": [
     {
-      "name": "windows-base",
+      "name": "win32",
       "condition": {
         "type": "equals",
         "lhs": "${hostSystemName}",
@@ -14,7 +14,7 @@
       "cacheVariables": {
         "CMAKE_CXX_COMPILER": "cl",
         "CMAKE_CXX_STANDARD": "23",
-        "BACKEND": "Win32-DirectX"
+        "VIEWDESIGN_BACKEND": "Win32-DirectX"
       },
       "architecture": {
         "value": "x64",
@@ -22,17 +22,17 @@
       }
     },
     {
-      "name": "x64-debug",
+      "name": "win32-x64-debug",
       "displayName": "x64 Debug",
-      "inherits": "windows-base",
+      "inherits": "win32",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug"
       }
     },
     {
-      "name": "x64-release",
+      "name": "win32-x64-release",
       "displayName": "x64 Release",
-      "inherits": "windows-base",
+      "inherits": "win32",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release"
       }

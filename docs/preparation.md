@@ -46,31 +46,31 @@ At runtime an interpreter function receives an input item and then outputs a new
 
 For example:
 
-- An item with union type T of sub-types < T1, T2, ..., Tn > is stored as a tuple `{ i, payload }` with i being an integer index of the payload type in (1, 2, ..., n) and payload being sub-item in that type. Its interpreter function F(T) is a mapping between integer indices and sub- interpreter functions accepting the corresponding sub-types { 1 ~ F1(T1), 2 ~ F2(T2), ..., n ~ Fn(Tn) }. At runtime it receives the item, reads i, and produces an item just as `payload` with type Ti and interpreter function Fi.
+- An item with *union* type T of sub-types < T1, T2, ..., Tn > is stored as a *tuple* `{ i, payload }` with i being an integer index of the payload type in (1, 2, ..., n) and payload being sub-item in that type. Its interpreter function F(T) is a mapping between integer indices and sub- interpreter functions accepting the corresponding sub-types { 1 ~ F1(T1), 2 ~ F2(T2), ..., n ~ Fn(Tn) }. At runtime it receives the item, reads i, and produces an item just as `payload` with type Ti and interpreter function Fi.
 
   > { i, payload: Ti }: T < T1, T2, ..., Tn >, F(T) { 1 ~ F1(T1), 2 ~ F2(T2), ..., n ~ Fn(Tn) } -> payload: Ti, Fi(Ti)
 
-- An interpreter function F for items with empty type {} gives constant output of an item with a certain type T and an interpreter function F'. We can also say that F is a constant function constructed by combining an item t with type T and F'(T).
+- An interpreter function F for items with *empty* type {} gives constant output of an item with a certain type T and an interpreter function F'. We can also say that F is a constant function constructed by combining an item t with type T and F'(T).
 
   > {}, F({}) -> t: T, F'(T)
 
-- An item with union type T of sub-types < T1, T2, ..., Tn >, where each sub-type Ti is an empty type, has empty payload and is stored just as the integer index `i`. Its interpreter function F(T) maps the indices to the corresponding sub- interpreter functions which are constant functions.
+- An item with *union* type T of sub-types < T1, T2, ..., Tn >, where each sub-type Ti is an *empty* type, has *empty* payload and is stored just as the integer index `i`. Its interpreter function F(T) maps the indices to the corresponding sub- interpreter functions which are constant functions.
 
   > i: T < T1 {}, T2 {}, ..., Tn {} >, F(T) { 1 ~ F1({}), 2 ~ F2({}), ..., n ~ Fn({}) } -> {}, Fi({})
 
-- Exist functions that receive a certain input type and output items with empty type and constant functions.
+- Exist functions that receive a certain input type and output items with *empty* type and constant functions.
 
   > t: T, F(T) -> {}, F'({})
 
-- An item with tuple type T of sub-types { T1, T2, ..., Tn } is stored as a tuple `{ t1: T1, t2: T2, ..., tn: Tn }`. The interpreter function F(T) can be constructed from the interpreter functions Fi(Ti) each interpreting the corresponding sub-item with type Ti.
+- An item with *tuple* type T of sub-types { T1, T2, ..., Tn } is stored as a *tuple* `{ t1: T1, t2: T2, ..., tn: Tn }`. The interpreter function F(T) can be constructed from the interpreter functions Fi(Ti) each interpreting the corresponding sub-item with type Ti.
 
   > { t1: T1, t2: T2, ..., tn: Tn }: T, F(T) { F1(T1), F2(T2), ..., Fn(Tn) } -> { t1': T1', t2': T2', ..., tn': Tn' }: T', F'(T') { F1'(T1'), F2'(T2'), ..., Fn'(Tn') }
 
-- An item with dynamic length array type T[] is stored as a tuple `{ l, T, T, ..., T }` (with l times T). The interpreter function stores only one copy of F0(T) that interprets items with type T. The runtime reads the length l and outputs an item with tuple type T[l] = { T, T, ..., T } (l times T) and the interpreter function for this tuple. This output interpreter function only exists at runtime, because it is of arbitrary size depending on the input item.
+- An item with *dynamic length array* type T[] is stored as a *tuple* `{ l, T, T, ..., T }` (with l times T). The interpreter function stores only one copy of F0(T) that interprets items with type T. The runtime reads the length l and outputs an item with *tuple* type T[l] = { T, T, ..., T } (l times T) and the interpreter function for this *tuple*. This output interpreter function only exists at runtime, because it is of arbitrary size depending on the input item.
 
   > { l, t1: T, t2: T, ..., tn: T }: T[], F(T[]) { F0(T) } -> { t1: T, t2: T, ..., tn: T }: T[l], F'(T[l]) { F0(T), F0(T), ..., F0(T) }
 
-- With a fixed length l = k, the output interpreter function above can be stored for interpreting items with constant length array type T[k] as tuple { T, T, ..., T } (k times T).
+- With a fixed length l = k, the output interpreter function above can be stored for interpreting items with *fixed length array* type T[k] as *tuple* { T, T, ..., T } (k times T).
 
   > { t1: T, t2: T, ..., tk: T }: T[k], F(T[k]) -> { t1': T', t2': T', ..., tk': T' }: T'[k], F'(T'[k])
 
@@ -80,39 +80,39 @@ Interpreter functions interpreting items at runtime is when items guide the cons
 
 Interpreter functions can be constructed by following principles:
 
-- Given interpreter functions F1(T1), F2(T2), ..., Fn(Tn), a union interpreter function F(T) can be constructed with T being the union type of sub-types < T1, T2, ..., Tn >.
+- Given interpreter functions F1(T1), F2(T2), ..., Fn(Tn), a *union* interpreter function F(T) can be constructed with T being the *union* type of sub-types < T1, T2, ..., Tn >.
 
-- Given a union interpreter function F(T) with T being the union type of sub-types < T1, T2, ..., Tn > and an integer index i in (1, 2, ..., n), the interpreter function for Ti can be constructed by copying the ith sub- interpreter function Fi(Ti) from F(T).
+- Given a *union* interpreter function F(T) with T being the *union* type of sub-types < T1, T2, ..., Tn > and an integer index i in (1, 2, ..., n), the interpreter function for Ti can be constructed by copying the ith sub- interpreter function Fi(Ti) from F(T).
 
-- Given interpreter functions F1(T1), F2(T2), ..., Fn(Tn), a tuple interpreter function F(T) can be constructed with T being the tuple type of sub-types { T1, T2, ..., Tn }.
+- Given interpreter functions F1(T1), F2(T2), ..., Fn(Tn), a *tuple* interpreter function F(T) can be constructed with T being the *tuple* type of sub-types { T1, T2, ..., Tn }.
 
 ### Constructor Function / Interpreter Registry
 
 An item with dynamic type stores the construction guide for the interpreter function of its data. The interpreter function for the item can also be called a constructor function for the output interpreter function.
 
-A union interpreter function is a constructor function with the integer index stored in the item being the construction guide.
+A *union* interpreter function is a constructor function with the integer index stored in the item being the construction guide.
 
-There are also constructor functions for constructing union and tuple interpreter functions at runtime.
+There are also constructor functions for constructing *union* and *tuple* interpreter functions at runtime.
 
 Basic interpreter functions F1(TF1), F2(TF2), ..., Fm(TFm) where TF1, TF2, ..., TFm are derived from basic types T1, T2, ..., Tn can be kept in an `interpreter registry`, each with a unique reference. Other interpreter functions can be constructed with them by certain constructor functions. Multiple interpreter functions can share the same type for the input item but interpret in different ways.
 
 For example:
 
-- An item with arbitrary tuple type stores a list of references to interpreter functions in the interpreter registry { rF1, rF2, ..., rFk } along with the payload tuple. The interpreter function for this item, the tuple constructor function, reads the list of references and constructs a tuple interpreter function by looking up the corresponding interpreter functions in the interpreter registry R = { rF1 ~ F1(TF1), rF2 ~ F2(TF2), ..., rFm ~ Fm(TFm) }.
+- An item with *arbitrary tuple* type stores a list of references to interpreter functions in the interpreter registry { rF1, rF2, ..., rFk } along with the payload tuple. The interpreter function for this item, the *tuple* constructor function, reads the list of references and constructs a *tuple* interpreter function by looking up the corresponding interpreter functions in the interpreter registry R = { rF1 ~ F1(TF1), rF2 ~ F2(TF2), ..., rFm ~ Fm(TFm) }.
 
   > { { k, rF1, rF2, ..., rFk }, { t1: T1, t2: T2, ..., tk: Tk } }: T, F(T) { R } -> { t1: T1, t2: T2, ..., tk: Tk }: T', F'(T') { F1(T1), F2(T2), ..., Fk(Tk) }
 
-- Similarly, an item with arbitrary union type stores a list of references to interpreter functions in the interpreter registry along with the payload union. The union constructor function reads the list of references and constructs a union interpreter function.
+- Similarly, an item with *arbitrary union* type stores a list of references to interpreter functions in the interpreter registry along with the payload union. The *union* constructor function reads the list of references and constructs a *union* interpreter function.
 
   > { { k, rF1, rF2, ..., rFk }, { i, payload } }: T, F(T) { R } -> { i, payload }: T', F'(T') { 1 ~ F1(T1), 2 ~ F2(T2), ..., k ~ Fk(Tk) }
 
-- An item with dynamic length array type of an arbitrary type stores the reference to the interpreter function for a single sub-item in the interpreter registry and the length of the array along with the payload array. The array constructor function reads the reference and the length and constructs a constant length array interpreter function.
+- An item with *dynamic length array of arbitrary* type stores the reference to the interpreter function for a single sub-item in the interpreter registry and the length of the array along with the payload array. The array constructor function reads the reference and the length and constructs a *fixed length array* interpreter function.
 
   > { { rF0, l }, t: T'[l] }: T, F(T) { R } -> t: T'[l], F'(T'[l]) { F0(T'), F0(T'), ..., F0(T') }
 
-Moreover, constructor functions as interpreter functions themselves can be put in the interpreter registry. This allows for interpreting items with any type.
+Moreover, constructor functions as interpreter functions themselves can be put in the interpreter registry. This allows for interpreting items with *any* type.
 
-- An item with any type stores the reference to an interpreter function along with the payload data. The any constructor function reads the reference and constructs the interpreter function for the payload. This resembles to how an item with union type is interpreted.
+- An item with *any* type stores the reference to an interpreter function along with the payload data. The *any* constructor function reads the reference and constructs the interpreter function for the payload. This resembles to how an item with *union* type is interpreted.
 
   > { rF', payload: T' }: T, F(T) { R } -> payload: T', F'(T')
 
@@ -122,49 +122,49 @@ An item is constructed according to the construction of its interpreter function
 
 For example:
 
-- Given a sub-item ti with type Ti, an item with union type T of sub-types < T1, T2, ..., Tn > where i is in (1, 2, ..., n) can be constructed by attaching the index i to the sub-item.
+- Given a sub-item ti with type Ti, an item with *union* type T of sub-types < T1, T2, ..., Tn > where i is in (1, 2, ..., n) can be constructed by attaching the index i to the sub-item.
 
   > ti: Ti --> { i, ti: Ti }: T < T1, T2, ..., Tn >
 
-- Given sub-items t1, t2, ..., tn with type T1, T2, ..., Tn respectively, an item with tuple type T { T1, T2, ..., Tn } can be constructed by putting the sub-items together.
+- Given sub-items t1, t2, ..., tn with type T1, T2, ..., Tn respectively, an item with *tuple* type T { T1, T2, ..., Tn } can be constructed by putting the sub-items together.
 
   > t1: T1, t2: T2, ..., tn: Tn --> { t1: T1, t2: T2, ..., tn: Tn }: T { T1, T2, ..., Tn }
 
-- Given an item t with type T and the reference of its interpreter function rF in the interpreter registry, an item with any type can be constructed by attaching the reference to the original item.
+- Given an item t with type T and the reference of its interpreter function rF in the interpreter registry, an item with *any* type can be constructed by attaching the reference to the original item.
 
   > t: T --> { rF, t: T }: T'
 
-- Given an item with tuple type T { T1, T2, ..., Tn } and the references of interpreter functions { rF1, rF2, ..., rFn } for each of the sub-item in the interpreter registry, an item with arbitrary tuple type T' can be constructed by attaching the reference list to the original item.
+- Given an item with *tuple* type T { T1, T2, ..., Tn } and the references of interpreter functions { rF1, rF2, ..., rFn } for each of the sub-item in the interpreter registry, an item with *arbitrary tuple* type T' can be constructed by attaching the reference list to the original item.
 
   > { t1: T1, t2: T2, ..., tn: Tn }: T --> { { n, rF1, rF2, ..., rFn }, { t1: T1, t2: T2, ..., tn: Tn }: T }: T'
 
-  By attaching the references of interpreter functions to each of the sub-item of the tuple, we can also get an item with dynamic length array type of any type.
+  By attaching the references of interpreter functions to each of the sub-item of the *tuple*, we can also get an item with *dynamic length array of any* type.
 
   > { { n, rF1, rF2, ..., rFn }, { t1: T1, t2: T2, ..., tn: Tn } } => { n, { rF1, t1: T1 }, { rF2, t2: T2 }, ..., { rFn, tn: Tn } }
 
-- Given an item with union type T of sub-types < T1, T2, ..., Tn > and the references of interpreter functions { rF1, rF2, ..., rFn } for each of the sub-type in the interpreter registry, an item with arbitrary union type T' can be constructed by attaching the reference list to the original item.
+- Given an item with *union* type T of sub-types < T1, T2, ..., Tn > and the references of interpreter functions { rF1, rF2, ..., rFn } for each of the sub-type in the interpreter registry, an item with *arbitrary union* type T' can be constructed by attaching the reference list to the original item.
 
   > { i, ti: Ti }: T < T1, T2, ..., Tn > --> { { n, rF1, rF2, ..., rFn }, { i, ti: Ti }: T }: T'
 
-  This could possibly be simplified to an item with any type by just keeping the ith interpreter function reference:
+  This could possibly be simplified to an item with *any* type by just keeping the ith interpreter function reference:
 
   > { { n, rF1, rF2, ..., rFn }, { i, ti: Ti } } => { rFi, ti: Ti }
 
-- Given sub-items t1, t2, ..., tn with the same type T, an item with fixed length array type T[n] can be constructed.
+- Given sub-items t1, t2, ..., tn with the same type T, an item with *fixed length array* type T[n] can be constructed.
 
   > t1: T, t2: T, ..., tn: T --> { t1: T, t2: T, ..., tn: T }: T[n]
 
-  It can be converted to dynamic length array type.
+  It can be converted to *dynamic length array* type.
 
   > { t1: T, t2: T, ..., tn: T } => { n, t1: T, t2: T, ..., tn: T }
 
-  With the reference of the interpreter function for a single sub-item, it can be converted to fixed length array type of an arbitrary type, or dynamic length array type of an arbitrary type.
+  With the reference of the interpreter function for a single sub-item, it can be converted to *fixed length array of arbitrary* type, or *dynamic length array of arbitrary* type.
 
   > { t1: T, t2: T, ..., tn: T } => { rF0, { t1: T, t2: T, ..., tn: T } }
 
   > { t1: T, t2: T, ..., tn: T } => { { rF0, n }, { t1: T, t2: T, ..., tn: T } }
 
-  They can be further converted to fixed or dynamic length array type of any type.
+  They can be further converted to *fixed or dynamic length array of any* type.
 
   > { rF0, { t1: T, t2: T, ..., tn: T } } => { { rF0, t1: T }, { rF0, t2: T }, ..., { rF0, tn: T } }
 
@@ -176,15 +176,15 @@ The construction guide stored in each item with the same type could be shared an
 
 These construction guides can be called descriptors and dynamically added in a `descriptor registry`, each unique and with a unique reference.
 
-Like an item with any type storing the reference to the interpreter function for its payload data, an item with descriptor any type stores the reference to the descriptor that guides the construction of the interpreter function for its payload data.
+Like an item with *any* type storing the reference to the interpreter function for its payload data, an item with *descriptor any* type stores the reference to the descriptor that guides the construction of the interpreter function for its payload data.
 
 For example:
 
-- The descriptor of tuple interpreter function for an item with tuple type of sub-types { T1, T2, ..., Tk } can be added as { rFC, { k, rF1, rF2, ..., rFk } } with reference rDn+1 in the descriptor registry DR with existing descriptors { rD1 ~ D1, rD2 ~ D2, ..., rDn ~ Dn }, where rFC is the reference to the tuple constructor function FC. The item is attached with the single reference to the descriptor instead of the list of references to interpreter functions of its sub-items.
+- The descriptor of *tuple* interpreter function for an item with *tuple* type of sub-types { T1, T2, ..., Tk } can be added as { rFC, { k, rF1, rF2, ..., rFk } } with reference rDn+1 in the descriptor registry DR with existing descriptors { rD1 ~ D1, rD2 ~ D2, ..., rDn ~ Dn }, where rFC is the reference to the *tuple* constructor function FC. The item is attached with the single reference to the descriptor instead of the list of references to interpreter functions of its sub-items.
 
   > { { k, rF1, rF2, ..., rFk }, { t1: T1, t2: T2, ..., tk: Tk } }: T, FC(T) { R } => { rDn+1, { t1: T1, t2: T2, ..., tk: Tk } }: T', F'(T') { R, DR ∪ { rDn+1 ~ { rFC, { k, rF1, rF2, ..., rFk } } } }
 
-- Similarly, an item with union type can be attached with the reference to a descriptor. It can no longer be simplified by just keeping the ith interpreter function reference but multiple items with the same union type can refer to the same descriptor.
+- Similarly, an item with *union* type can be attached with the reference to a descriptor. It can no longer be simplified by just keeping the ith interpreter function reference but multiple items with the same *union* type can refer to the same descriptor.
 
   > { { k, rF1, rF2, ..., rFk }, { i, ti: Ti } }: T, FC(T) { R } => { rDn+1, { i, ti: Ti } }: T', F'(T') { R, DR ∪ { rDn+1 ~ { rFC, { k, rF1, rF2, ..., rFk } } } }
 
@@ -194,101 +194,101 @@ A descriptor can contain references to interpreter functions or other descriptor
 
 #### Natural Conversion
 
-- A fixed length array T[k] is equivalent to a tuple with k times T.
+- A *fixed length array* T[k] is equivalent to a *tuple* with k times T.
   
   > T[k] = { T, T, ..., T }
 
-- A zero length array of any type T is equivalent to an empty tuple as the empty type.
+- A *zero length array of any* type T is equivalent to an *empty tuple* as the *empty* type.
 
   > T[0] = {}
 
 - The following types are equivalent:
   - T
-  - fixed length array T[1]
-  - tuple { T }
-  - union < T >
+  - *fixed length array* T[1]
+  - *tuple* { T }
+  - *union* < T >
 
   > T = T[1] = { T } = < T >
 
-- A fixed length array T[k] can be converted to a dynamic length array T[] with actual length k.
+- A *fixed length array* T[k] can be converted to a *dynamic length array* T[] with actual length k.
 
   > { t1: T, t2: T, ..., tk: T }: T[k] => { k, t1: T, t2: T, ..., tk: T }: T[]
 
-- The sub-types of a union don't repeat.
+- The sub-types of a *union* don't repeat.
 
   > < T1, T2, ..., Ti-1, Ti, ..., Ti, ..., Tk > = < T1, T2, ..., Ti-1, Ti, ..., Tk >
 
-- Nested union can be flattened.
+- Nested *union* can be flattened.
 
   > < T1, T2, ..., < Ti1, Ti2, ..., Tin >, ..., Tk > <=> < T1, T2, ..., Ti1, Ti2, ..., Tin, ..., Tk >
 
-- The sub-types of a union can be extended.
+- The sub-types of a *union* can be extended.
 
   > { i, ti: Ti }: < T1, T2, ..., Tk > => { i, ti: Ti }: < T1, T2, ..., Tk, ..., Tn >
 
-- The sub-types of a union can be permuted.
+- The sub-types of a *union* can be permuted.
 
   > { i, ti: Ti }: < T1, T2, ..., Tk > <=> { j, ti: Ti }: < T1', T2', ..., Tk'> (Tj' = Ti)
 
-- A tuple can add or remove any empty type as sub-types.
+- A *tuple* can add or remove any *empty* type as sub-types.
 
   > { T1, T2, ..., Tk } <=> { T1, T2, ..., {}, ..., Tk }
 
-- Nested tuple can be flattened.
+- Nested *tuple* can be flattened.
 
   > { T1, T2, ..., { Ti1, Ti2, ..., Tin }, ..., Tk } <=> { T1, T2, ..., Ti1, Ti2, ..., Tin, ..., Tk }
 
-- The sub-items of a tuple can be permuted.
+- The sub-items of a *tuple* can be permuted.
 
   > { t1: T1, t2: T2, ..., tk: Tk } <=> { t1': T1', t2': T2', ..., tk': Tk' }
 
-- A union can be distributed in tuple.
+- A *union* can be distributed in tuple.
 
   > { < T1, T2, ..., Tk >, T... } <=> < { T1, T... }, { T2, T... }, ..., { Tk, T... } >
 
 #### Restricted Conversion
 
-- A fixed length array T[k] can only be converted from a dynamic length array T[] with actual length k.
+- A *fixed length array* T[k] can only be converted from a *dynamic length array* T[] with actual length k.
 
   > { k, t1: T, t2: T, ..., tk: T }: T[] => { t1: T, t2: T, ..., tk: T }: T[k]
 
-- A sub-type of a union can be removed if it is not the actual type the union takes.
+- A sub-type of a *union* can be removed if it is not the actual type the *union* takes.
 
   > { i, ti: Ti }: < T1, T2, ..., Tk > => { 0, ti: Ti }: < Ti >
 
 #### Extending / Shrinking / Replacing Conversion
 
-- A fixed length array T[k] can be extended by inserting an item of type T at any position.
+- A *fixed length array* T[k] can be extended by inserting an item of type T at any position.
 
-- A fixed length array can be shrunk by removing any item.
+- A *fixed length array* can be shrunk by removing any item.
 
-- Multiple fixed length arrays of the same item type can be concatenated.
+- Multiple *fixed length array*s of the same item type can be concatenated.
 
-- A fixed length array can be split into multiple fixed length arrays.
+- A *fixed length array* can be split into multiple *fixed length array*s.
 
-- A tuple can be extended by adding a sub-item at any position.
+- A *tuple* can be extended by adding a sub-item at any position.
 
-- A tuple can be shrunk by removing any sub-item.
+- A *tuple* can be shrunk by removing any sub-item.
 
-- A sub-item in a tuple can be replaced by another item of a different type.
+- A sub-item in a *tuple* can be replaced by another item of a different type.
 
-- Multiple tuples can be concatenated.
+- Multiple *tuple*s can be concatenated.
 
-- A tuple can be split into multiple tuples.
+- A *tuple* can be split into multiple *tuple*s.
 
-#### (Descriptor) Any Type Conversion
+#### *(Descriptor) Any* Type Conversion
 
-- An item can be converted to an item with (descriptor) any type with actual reference of the interpreter(descriptor) for the item.
+- An item can be converted to an item with *(descriptor) any* type with actual reference of the interpreter(descriptor) for the item.
 
-- (restricted) An item can be converted from an item with (descriptor) any type only when the reference of the interpreter(descriptor) matches the item type.
+- (restricted) An item can be converted from an item with *(descriptor) any* type only when the reference of the interpreter (descriptor) matches the item type.
 
-#### Non Conversion
+#### Non-Conversion
 
-- A dynamic length array adding or removing items.
+- A *dynamic length array* adding or removing items.
 
-- A union reassigning an item with another sub-type of the union.
+- A *union* reassigning an item with another sub-type of the *union*.
 
-- An item with (descriptor) any type reassigning an item with another type.
+- An item with *(descriptor) any* type reassigning an item with another type.
 
 ## Example
 
@@ -358,7 +358,7 @@ Each basic interpreter function class is registered in the `InterpreterRegistry`
 
 #### Descriptor
 
-`DescriptorAnyView` inheriting `ItemView` provides the interpreter function for items with descriptor any type:
+`DescriptorAnyView` inheriting `ItemView` provides the interpreter function for items with *descriptor any* type:
 - DescriptorAny: `descriptor_ref, ...`
 
 A descriptor can be registered in `DescriptorRegistry` returning its `descriptor_ref`. Each descriptor registered in `DescriptorRegistry` is unique. The same `descriptor_ref` will be returned if a descriptor is already registered. The descriptor types are:

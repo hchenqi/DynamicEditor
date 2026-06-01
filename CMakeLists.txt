@@ -5,6 +5,6 @@ project(DynamicEditor CXX)
 add_subdirectory("../ViewDesign" ViewDesign)
 add_subdirectory("../BlockStore" BlockStore)
 
-add_executable(DynamicEditor WIN32 "src/main.cpp")
+add_executable(DynamicEditor WIN32 "src/App.cpp")
 target_link_libraries(DynamicEditor PRIVATE ViewDesign)
 target_link_libraries(DynamicEditor PRIVATE BlockStore)
