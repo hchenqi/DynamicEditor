@@ -31,6 +31,10 @@ The metadata block as the global root block stores a tuple of:
 
 The descriptor registry is an *unordered reference set* of all descriptors.
 
+#### String Table
+
+The string table is an *unordered reference set* of all strings (`std::u16string`).
+
 #### Root Item
 
 The root item is stored in a block with *descriptor any* type.
@@ -47,58 +51,76 @@ The descriptor types are:
   - `StringRefView`
   - `DescriptorAnyRefView`
 - `TupleDescriptor`: `std::vector<descriptor_ref>`
+- `DynamicLengthArrayDescriptor`: `descriptor_ref`
 
 Item update:
 - `StringRefView`: updating the text string and referencing to the new string block in the string table
 - `DescriptorAnyRefView`: referencing another item with *descriptor any* type
-- `DescriptorAnyView`: updating data, or converting descriptor
+- `DescriptorAnyView`: updating item data, or converting descriptor
 
 Descriptor update:
 - `BasicDescriptor`:
   - updating the item with its interpreter
-- `BasicDescriptor` | `TupleDescriptor` (natural)-> `TupleDescriptor`
-- `TupleDescriptor` (with one child)-> `BasicDescriptor` | `TupleDescriptor`
+- `BasicDescriptor` | `TupleDescriptor` | `DynamicLengthArrayDescriptor` (natural)<-> `TupleDescriptor` | `DynamicLengthArrayDescriptor`
 - `TupleDescriptor`:
   - adding a child descriptor
   - updating a child descriptor
   - removing a child descriptor
+- `DynamicLengthArrayDescriptor`:
+  - updating the descriptor
 
 Descriptor wrap/unwrap:
 - `DescriptorAnyView` (wrap)-> `DescriptorAnyRefView`
 - `DescriptorAnyRefView` (unwrap) -> `DescriptorAnyView`
 
-#### Workflow
+#### Example
 
-- The root item with *descriptor any* type is initialized as `BasicDescriptor` for `StringRefView` referencing an empty string:
+- The root item with *descriptor any* type initialized as `BasicDescriptor` for `StringRefView` referencing an empty string:
 
 ```
 BlockView (root item block)
 - DescriptorAnyView : ItemView
+  (OnChildConvert(child, callback: DescriptorView -> DescriptorView))
   - BasicDescriptorView : DescriptorView
+    (OnConvert: create descriptor view, update descriptor reference, propagate data change)
     - StringRefView : ItemView
+      (OnStringUpdate: lookup/create entry in the string table, update block reference, propagate data change)
       - block<std::u16string>
         - u""
 ```
 
-- Modifying the string value only creates/reuses an entry in the string table and the `StringRefView` updates the reference to the entry.
-
-#### Example
-
-- The root item has schema:
+- `BasicDescriptorView` converted to `TupleDescriptorView`:
 
 ```
-TupleDescriptor
-- BasicDescriptor
-  - StringRef
-- BasicDescriptor
-  - DescriptorAnyRef
-- BasicDescriptor
-  - DescriptorAnyRef
+BlockView (root item block)
+- DescriptorAnyView : ItemView
+  - TupleDescriptorView : DescriptorView
+    - BasicDescriptorView : DescriptorView
+      - StringRefView : ItemView
+        - block<std::u16string>
+          - u""
 ```
+
+- `TupleDescriptorView` added a child:
+
+
 
 ### GUI
 
 All item views and helper controls are displayed as view components with *ViewDesign*.
+
+#### Main Window
+
+The main window displays:
+- the current block view (initial as root block view)
+
+#### BlockView
+
+`BlockView` displays the current item block with *descriptor any* type.
+
+It can be displayed inline in a `DescriptorAnyRefView`, or displayed in an individual tab.
+
+A `BlockView` contains the root `ItemView`.
 
 #### ItemView
 
@@ -107,14 +129,11 @@ All item views and helper controls are displayed as view components with *ViewDe
 - `DescriptorAnyRefView`
 - `DescriptorAnyView`
 
-#### BlockView
+#### DescriptorAnyView
 
-`BlockView` displays the current item block with *descriptor any* type.
+#### DescriptorView
 
-It can be displayed inline in a `DescriptorAnyRefView`, or displayed in its own tab.
-
-#### TreeView
-
-`TreeView` displays the tree structure of the current `BlockView`. 
-
-#### DescriptorSelect
+`DescriptorView` is inherited by:
+- `BasicDescriptorView`: contains `ItemView`
+- `TupleDescriptorView`: contains a list of `DescriptorView`
+- `DynamicLengthArrayDescriptorView`: contains a list of `DescriptorView` sharing the same descriptor
