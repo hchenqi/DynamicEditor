@@ -4,9 +4,13 @@ An editor with dynamic schemas
 
 ## Demo
 
-### Initialization
+### Initializing
 
-### 
+### Converting to Tuple
+
+### Appending Child
+
+### Wrapping as Block
 
 ## Build Instructions
 
@@ -37,130 +41,111 @@ The string table is an *unordered reference set* of all strings (`std::u16string
 
 #### Root Item
 
-The root item block has *descriptor any* type.
+All item blocks including the root item block have *descriptor any* type.
 
 #### Item Type
 
-The interpreter functions and their corresponding item types are:
-- `StringRefView`: `block<std::u16string>`
-- `DescriptorAnyRefView`: `block_ref` (to an item with *descriptor any* type)
-- `DescriptorAnyView`: `descriptor_ref, ...`
+The inline item types are: (interpreter indexed by `interpreter_ref`)
+- `StringRef`: `block<std::u16string>`
+- `ItemBlockRef`: `block_ref` (of an item block)
+
+Updating inline item data:
+- `StringRef`: updating the text string and referencing to the new string block in the string table
+- `ItemBlockRef`: referencing another item block
+
+The item block type is:
+- `DescriptorAny`: `descriptor_ref, ...`
 
 The descriptor types are:
 - `BasicDescriptor`: `interpreter_ref`
-  - `StringRefView`
-  - `DescriptorAnyRefView`
+  - `StringRef`
+  - `ItemBlockRef`
 - `TupleDescriptor`: `std::vector<descriptor_ref>`
 - `DynamicLengthArrayDescriptor`: `descriptor_ref`
 
-Item update:
-- `StringRefView`: updating the text string and referencing to the new string block in the string table
-- `DescriptorAnyRefView`: referencing another item block with *descriptor any* type
-- `DescriptorAnyView`: updating item data, or converting descriptor
+Updating descriptor data:
+- `BasicDescriptor`: updating inline item data (propagates to parent descriptor)
+- `DynamicLengthArrayDescriptor`: adding/removing child
 
-Descriptor update:
-- `BasicDescriptor`:
-  - updating the item with its interpreter
-- `BasicDescriptor` | `TupleDescriptor` | `DynamicLengthArrayDescriptor` (natural)<-> `TupleDescriptor` | `DynamicLengthArrayDescriptor`
-- `TupleDescriptor`:
-  - adding a child descriptor
-  - updating a child descriptor
-  - removing a child descriptor
-- `DynamicLengthArrayDescriptor`:
-  - updating the descriptor
-
-Descriptor wrap/unwrap:
-- `DescriptorView` (wrap/unwrap)<-> `BasicDescriptorView` for `DescriptorAnyRefView`
+Converting descriptor type:
+- `BasicDescriptor` | `TupleDescriptor` | `DynamicLengthArrayDescriptor` <-> `TupleDescriptor` | `DynamicLengthArrayDescriptor` (natural: single child)
+- `TupleDescriptor` <-> `TupleDescriptor` (adding/updating/removing child)
+- `DynamicLengthArrayDescriptor` <-> `TupleDescriptor` (natural: distribution; restricted(children with the same descriptor): reverse-distribution)
+- `BasicDescriptor` | `TupleDescriptor` | `DynamicLengthArrayDescriptor` <-> `BasicDescriptor` for `ItemBlockRef` (wrap; unwrap)
 
 #### Example
 
-- The root item block with *descriptor any* type initialized as `BasicDescriptor` for `StringRefView` referencing an empty string:
+- The root item block initialized as `BasicDescriptor` for `StringRef` referencing an empty string:
 
 ```
-BlockView (root item block)
-- DescriptorAnyView : ItemView
-  (OnChildConvert(child, callback: DescriptorView -> DescriptorView): update descriptor reference, propagate data change)
-  - BasicDescriptorView : DescriptorView
-    (OnConvert: create new descriptor view from self)
-    - StringRefView : ItemView
-      (OnStringUpdate: lookup/create entry in the string table, update block reference, propagate data change)
-      - block<std::u16string>
-        - u""
+ItemBlock (root item block)
+(OnChildConvert(child, callback: Descriptor -> Descriptor): update descriptor reference, propagate data change)
+- BasicDescriptor : Descriptor
+  (OnConvert: create new descriptor from self)
+  - StringRef : InlineItem
+    (OnStringUpdate: lookup/create entry in the string table, update block reference, propagate data change)
+    - block<std::u16string> (u"")
 ```
 
-- `BasicDescriptorView` converted to `TupleDescriptorView`:
+- `BasicDescriptor` converted to `TupleDescriptor`:
 
 ```
-BlockView (root item block)
-- DescriptorAnyView : ItemView
-  - TupleDescriptorView : DescriptorView
-    (OnAppend: append a child descriptor)
-    (OnInsertBefore: insert a child descriptor before another)
-    - BasicDescriptorView : DescriptorView
-      - StringRefView : ItemView
-        - block<std::u16string>
-          - u""
+ItemBlock (root item block)
+- TupleDescriptor : Descriptor
+  (OnAppend: append a child descriptor)
+  (OnInsertBefore: insert a child descriptor before another)
+  - BasicDescriptor : Descriptor
+    - StringRef : InlineItem
+      - block<std::u16string> (u"")
 ```
 
-- `TupleDescriptorView` added a child of `TupleDescriptorView`:
+- `TupleDescriptor` added a child of `TupleDescriptor`:
 
 ```
-BlockView (root item block)
-- DescriptorAnyView : ItemView
-  - TupleDescriptorView : DescriptorView
-    - BasicDescriptorView : DescriptorView
-      - StringRefView : ItemView
-        - block<std::u16string>
-          - u""
-    - TupleDescriptorView : DescriptorView
+ItemBlock (root item block)
+- TupleDescriptor : Descriptor
+  - BasicDescriptor : Descriptor
+    - StringRef : InlineItem
+      - block<std::u16string> (u"")
+  - TupleDescriptor : Descriptor
 ```
 
-- The child `TupleDescriptorView` added two children of `BasicDescriptorView` for `StringRefView` referencing the empty string:
+- The child `TupleDescriptor` added two children of `BasicDescriptor` for `StringRef` referencing the empty string:
 
 ```
-BlockView (root item block)
-- DescriptorAnyView : ItemView
-  - TupleDescriptorView : DescriptorView
-    - BasicDescriptorView : DescriptorView
-      - StringRefView : ItemView
-        - block<std::u16string>
-          - u""
-    - TupleDescriptorView : DescriptorView
-      (OnWrap: create a block with *descriptor any* type initialized with self, convert self to `BasicDescriptorView` for `DescriptorAnyRefView` referencing the block)
-      - BasicDescriptorView : DescriptorView
-        - StringRefView : ItemView
-          - block<std::u16string>
-            - u""
-      - BasicDescriptorView : DescriptorView
-        - StringRefView : ItemView
-          - block<std::u16string>
-            - u""
+ItemBlock (root item block)
+- TupleDescriptor : Descriptor
+  - BasicDescriptor : Descriptor
+    - StringRef : InlineItem
+      - block<std::u16string> (u"")
+  - TupleDescriptor : Descriptor
+    (OnWrap: create an item block initialized with self, convert self to `BasicDescriptor` for `ItemBlockRef` referencing the block)
+    - BasicDescriptor : Descriptor
+      - StringRef : InlineItem
+        - block<std::u16string> (u"")
+    - BasicDescriptor : Descriptor
+      - StringRef : InlineItem
+        - block<std::u16string> (u"")
 ```
 
-- The child `TupleDescriptorView` wrapped to `BasicDescriptorView` for `DescriptorAnyRefView`:
+- The child `TupleDescriptor` wrapped to `BasicDescriptor` for `ItemBlockRef`:
 
 ```
-BlockView (root item block)
-- DescriptorAnyView : ItemView
-  - TupleDescriptorView : DescriptorView
-    - BasicDescriptorView : DescriptorView
-      - StringRefView : ItemView
-        - block<std::u16string>
-          - u""
-    - BasicDescriptorView : DescriptorView
-      - DescriptorAnyRefView : ItemView
-        - block_ref
-          - BlockView
-            - DescriptorAnyView : ItemView
-              - TupleDescriptorView : DescriptorView
-                - BasicDescriptorView : DescriptorView
-                  - StringRefView : ItemView
-                    - block<std::u16string>
-                      - u""
-                - BasicDescriptorView : DescriptorView
-                  - StringRefView : ItemView
-                    - block<std::u16string>
-                      - u""
+ItemBlock (root item block)
+- TupleDescriptor : Descriptor
+  - BasicDescriptor : Descriptor
+    - StringRef : InlineItem
+      - block<std::u16string> (u"")
+  - BasicDescriptor : Descriptor
+    - ItemBlockRef : InlineItem
+      - block_ref (ItemBlock)
+        - TupleDescriptor : Descriptor
+          - BasicDescriptor : Descriptor
+            - StringRef : InlineItem
+              - block<std::u16string> (u"")
+          - BasicDescriptor : Descriptor
+            - StringRef : InlineItem
+              - block<std::u16string> (u"")
 ```
 
 ### GUI
