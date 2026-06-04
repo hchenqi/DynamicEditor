@@ -37,7 +37,7 @@ The string table is an *unordered reference set* of all strings (`std::u16string
 
 #### Root Item
 
-The root item is stored in a block with *descriptor any* type.
+The root item block has *descriptor any* type.
 
 #### Item Type
 
@@ -55,7 +55,7 @@ The descriptor types are:
 
 Item update:
 - `StringRefView`: updating the text string and referencing to the new string block in the string table
-- `DescriptorAnyRefView`: referencing another item with *descriptor any* type
+- `DescriptorAnyRefView`: referencing another item block with *descriptor any* type
 - `DescriptorAnyView`: updating item data, or converting descriptor
 
 Descriptor update:
@@ -70,19 +70,18 @@ Descriptor update:
   - updating the descriptor
 
 Descriptor wrap/unwrap:
-- `DescriptorAnyView` (wrap)-> `DescriptorAnyRefView`
-- `DescriptorAnyRefView` (unwrap) -> `DescriptorAnyView`
+- `DescriptorView` (wrap/unwrap)<-> `BasicDescriptorView` for `DescriptorAnyRefView`
 
 #### Example
 
-- The root item with *descriptor any* type initialized as `BasicDescriptor` for `StringRefView` referencing an empty string:
+- The root item block with *descriptor any* type initialized as `BasicDescriptor` for `StringRefView` referencing an empty string:
 
 ```
 BlockView (root item block)
 - DescriptorAnyView : ItemView
-  (OnChildConvert(child, callback: DescriptorView -> DescriptorView))
+  (OnChildConvert(child, callback: DescriptorView -> DescriptorView): update descriptor reference, propagate data change)
   - BasicDescriptorView : DescriptorView
-    (OnConvert: create descriptor view, update descriptor reference, propagate data change)
+    (OnConvert: create new descriptor view from self)
     - StringRefView : ItemView
       (OnStringUpdate: lookup/create entry in the string table, update block reference, propagate data change)
       - block<std::u16string>
@@ -95,15 +94,74 @@ BlockView (root item block)
 BlockView (root item block)
 - DescriptorAnyView : ItemView
   - TupleDescriptorView : DescriptorView
+    (OnAppend: append a child descriptor)
+    (OnInsertBefore: insert a child descriptor before another)
     - BasicDescriptorView : DescriptorView
       - StringRefView : ItemView
         - block<std::u16string>
           - u""
 ```
 
-- `TupleDescriptorView` added a child:
+- `TupleDescriptorView` added a child of `TupleDescriptorView`:
 
+```
+BlockView (root item block)
+- DescriptorAnyView : ItemView
+  - TupleDescriptorView : DescriptorView
+    - BasicDescriptorView : DescriptorView
+      - StringRefView : ItemView
+        - block<std::u16string>
+          - u""
+    - TupleDescriptorView : DescriptorView
+```
 
+- The child `TupleDescriptorView` added two children of `BasicDescriptorView` for `StringRefView` referencing the empty string:
+
+```
+BlockView (root item block)
+- DescriptorAnyView : ItemView
+  - TupleDescriptorView : DescriptorView
+    - BasicDescriptorView : DescriptorView
+      - StringRefView : ItemView
+        - block<std::u16string>
+          - u""
+    - TupleDescriptorView : DescriptorView
+      (OnWrap: create a block with *descriptor any* type initialized with self, convert self to `BasicDescriptorView` for `DescriptorAnyRefView` referencing the block)
+      - BasicDescriptorView : DescriptorView
+        - StringRefView : ItemView
+          - block<std::u16string>
+            - u""
+      - BasicDescriptorView : DescriptorView
+        - StringRefView : ItemView
+          - block<std::u16string>
+            - u""
+```
+
+- The child `TupleDescriptorView` wrapped to `BasicDescriptorView` for `DescriptorAnyRefView`:
+
+```
+BlockView (root item block)
+- DescriptorAnyView : ItemView
+  - TupleDescriptorView : DescriptorView
+    - BasicDescriptorView : DescriptorView
+      - StringRefView : ItemView
+        - block<std::u16string>
+          - u""
+    - BasicDescriptorView : DescriptorView
+      - DescriptorAnyRefView : ItemView
+        - block_ref
+          - BlockView
+            - DescriptorAnyView : ItemView
+              - TupleDescriptorView : DescriptorView
+                - BasicDescriptorView : DescriptorView
+                  - StringRefView : ItemView
+                    - block<std::u16string>
+                      - u""
+                - BasicDescriptorView : DescriptorView
+                  - StringRefView : ItemView
+                    - block<std::u16string>
+                      - u""
+```
 
 ### GUI
 
