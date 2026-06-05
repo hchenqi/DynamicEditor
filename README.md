@@ -26,22 +26,22 @@ The metadata and all item data are stored as blocks with *BlockStore*.
 
 #### Metadata
 
-the global root block storing a tuple of:
+as the global root block, storing a tuple of:
 - reference of `StringTable`
 - reference of `DescriptorRegistry`
 - reference of root `ItemBlock`
 
 #### StringTable
 
-an *unordered reference set* of all strings (`std::u16string`).
+an *ordered reference set* of all strings (`std::u16string`) indexed and ordered by the strings themselves
 
 #### DescriptorRegistry
 
-an *unordered reference set* of all descriptors.
+an *ordered reference set* of all descriptors indexed and ordered by the descriptors themselves
 
 #### ItemBlock
 
-has type:
+type:
 - `DescriptorAny`: `descriptor_ref, ...`
 
 descriptor types: (descriptor: collected in `DescriptorRegistry`, indexed by itself, referenced by `descriptor_ref`)
@@ -70,9 +70,9 @@ descriptor type conversion:
 - `DynamicLengthArrayDescriptor` <-> `TupleDescriptor` (natural: distribution; restricted(children with the same descriptor): reverse-distribution)
 - `BasicItemDescriptor` | `TupleDescriptor` | `DynamicLengthArrayDescriptor` -> `BasicItemDescriptor` for `ItemBlockRef` (extract)
 
-#### Example
+##### Example
 
-- The root `ItemBlock` initialized as `BasicItemDescriptor` for `StringRef` referencing `u""`:
+- root `ItemBlock` initialized as `BasicItemDescriptor` for `StringRef` referencing `u""`:
 
 ```
 ItemBlock (#0 root)
@@ -107,7 +107,7 @@ ItemBlock (#0 root)
   - TupleDescriptor : Descriptor
 ```
 
-- The child `TupleDescriptor` added two child descriptors of `BasicItemDescriptor` for `StringRef` referencing `u""`:
+- the child `TupleDescriptor` added two child descriptors of `BasicItemDescriptor` for `StringRef` referencing `u""`:
 
 ```
 ItemBlock (#0 root)
@@ -125,7 +125,7 @@ ItemBlock (#0 root)
         - block<std::u16string> (u"")
 ```
 
-- The child `TupleDescriptor` extracted to a new block referenced by `ItemBlockRef` as `BasicItemDescriptor`:
+- the child `TupleDescriptor` extracted as block referenced by `ItemBlockRef` as `BasicItemDescriptor`:
 
 ```
 ItemBlock (#0 root)
@@ -147,7 +147,11 @@ ItemBlock (#1)
       - block<std::u16string> (u"")
 ```
 
-### UI
+#### ItemBlockCache
+
+caches `ItemBlock` and synchronizes data for `ItemBlockView`
+
+### View
 
 All view components and helper controls are built with *ViewDesign*.
 
@@ -164,11 +168,19 @@ provides context:
 
 #### ItemBlockView
 
-can be displayed in a tab in `MainWindow` or inline in `ItemBlockRefView`
+can be displayed:
+- as a tab in `MainWindow`
+- inline in `ItemBlockRefView`
 
-displays the current `ItemBlock` holding the top-level `DescriptorView`
+displays:
+- a `Select` for verbose mode (updating state `verbose`)
+- top-level `DescriptorView` of the `ItemBlock`
 
-consumes context `DescriptorRegistry&` and passes it to `DescriptorView`
+consumes context:
+- `DescriptorRegistry&` (passed to `DescriptorView`)
+
+provides context:
+- (state) `bool verbose`
 
 #### DescriptorView
 
@@ -177,29 +189,40 @@ inherited by:
 - `TupleDescriptorView`
 - `DynamicLengthArrayDescriptorView`
 
-(verbose) displays conversion options:
-- convert to `Tuple` as child
-- convert to `DynamicLengthArray` as child
-- extract as block
+consumes context:
+- (state) `bool verbose`
+
+displays:
+- (verbose) conversion options
+  - convert to `Tuple` as child
+  - convert to `DynamicLengthArray` as child
+  - extract as block
 
 ##### BasicItemDescriptorView
 
-contains `BasicItemView`
+displays:
+- `BasicItemView`
 
 ##### TupleDescriptorView
 
-contains a list of `DescriptorView`
+consumes context:
+- (state) `bool verbose`
 
-(verbose) displays additional conversion options:
-- add/update/remove a child descriptor
-- convert to `DynamicLengthArray` (enabled if all children share the same descriptor)
+displays:
+- (verbose) additional conversion options:
+  - add/update/remove a child descriptor
+  - convert to `DynamicLengthArray` (enabled if all children share the same descriptor)
+- a list of `DescriptorView`
 
 ##### DynamicLengthArrayDescriptorView
 
-contains a list of `DescriptorView` sharing the same descriptor
+consumes context:
+- (state) `bool verbose`
 
-(verbose) displays additional conversion options:
-- convert to `Tuple`
+displays:
+- (verbose) additional conversion options:
+  - convert to `Tuple`
+- a list of `DescriptorView` sharing the same descriptor
 
 #### BasicItemView
 
@@ -209,10 +232,26 @@ inherited by:
 
 ##### StringRefView
 
-consumes context `StringTable&`
+consumes context:
+- `StringTable&`
+- (state) `bool verbose`
+
+displays:
+- (verbose):
+  - the block reference
+  - `TextView` of the unmodified string
+- `TextEditor` (focusable):
+  - edit the current string (mark if it is modified)
 
 ##### ItemBlockRefView
 
-consumes context `OpenTab(item_block_ref)`
+consumes context:
+- `OpenTab(item_block_ref)`
+- (state) `bool verbose`
 
-opens a tab for the `ItemBlockView` or displays it inline
+displays:
+- (verbose):
+  - the block reference
+- a `Select` for displaying/hiding inline `ItemBlockView` (updating state `selected`)
+- a `Button` for opening tab `ItemBlockView`
+- (selected) the inline `ItemBlockView`
