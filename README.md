@@ -10,7 +10,7 @@ An editor with dynamic schemas
 
 ### Appending Child
 
-### Wrapping as Block
+### Extracting as Block
 
 ## Build Instructions
 
@@ -26,157 +26,193 @@ The metadata and all item data are stored as blocks with *BlockStore*.
 
 #### Metadata
 
-The metadata block as the global root block stores a tuple of:
-- the reference to the descriptor registry
-- the reference to the string table
-- the reference to the root item block
+the global root block storing a tuple of:
+- reference of `StringTable`
+- reference of `DescriptorRegistry`
+- reference of root `ItemBlock`
 
-#### Descriptor Registry
+#### StringTable
 
-The descriptor registry is an *unordered reference set* of all descriptors.
+an *unordered reference set* of all strings (`std::u16string`).
 
-#### String Table
+#### DescriptorRegistry
 
-The string table is an *unordered reference set* of all strings (`std::u16string`).
+an *unordered reference set* of all descriptors.
 
-#### Root Item
+#### ItemBlock
 
-All item blocks including the root item block have *descriptor any* type.
-
-#### Item Type
-
-The inline item types are: (interpreter indexed by `interpreter_ref`)
-- `StringRef`: `block<std::u16string>`
-- `ItemBlockRef`: `block_ref` (of an item block)
-
-Updating inline item data:
-- `StringRef`: updating the text string and referencing to the new string block in the string table
-- `ItemBlockRef`: referencing another item block
-
-The item block type is:
+has type:
 - `DescriptorAny`: `descriptor_ref, ...`
 
-The descriptor types are:
-- `BasicDescriptor`: `interpreter_ref`
+descriptor types: (descriptor: collected in `DescriptorRegistry`, indexed by itself, referenced by `descriptor_ref`)
+- `BasicItemDescriptor`: `interpreter_ref`
   - `StringRef`
   - `ItemBlockRef`
 - `TupleDescriptor`: `std::vector<descriptor_ref>`
 - `DynamicLengthArrayDescriptor`: `descriptor_ref`
 
-Updating descriptor data:
-- `BasicDescriptor`: updating inline item data (propagates to parent descriptor)
-- `DynamicLengthArrayDescriptor`: adding/removing child
+basic item types inheriting `BasicItem`: (interpreter: compile-time constant, indexed by `interpreter_ref`)
+- `StringRef`: `block<std::u16string>` (string: collected in `StringTable`, indexed by itself, referenced by `block<std::u16string>`)
+- `ItemBlockRef`: `item_block_ref`
 
-Converting descriptor type:
-- `BasicDescriptor` | `TupleDescriptor` | `DynamicLengthArrayDescriptor` <-> `TupleDescriptor` | `DynamicLengthArrayDescriptor` (natural: single child)
+basic item data update: (propagates to parent descriptor)
+- `StringRef`: updating the string and referencing the new string block in `StringTable`
+- `ItemBlockRef`: referencing another `ItemBlock`
+
+descriptor data update:
+- `BasicItemDescriptor`: updating basic item data
+- `TupleDescriptor`: updating child descriptor data
+- `DynamicLengthArrayDescriptor`: adding/removing child, updating child descriptor data
+
+descriptor type conversion:
+- `BasicItemDescriptor` | `TupleDescriptor` | `DynamicLengthArrayDescriptor` <-> `TupleDescriptor` | `DynamicLengthArrayDescriptor` (natural: single child)
 - `TupleDescriptor` <-> `TupleDescriptor` (adding/updating/removing child)
 - `DynamicLengthArrayDescriptor` <-> `TupleDescriptor` (natural: distribution; restricted(children with the same descriptor): reverse-distribution)
-- `BasicDescriptor` | `TupleDescriptor` | `DynamicLengthArrayDescriptor` <-> `BasicDescriptor` for `ItemBlockRef` (wrap; unwrap)
+- `BasicItemDescriptor` | `TupleDescriptor` | `DynamicLengthArrayDescriptor` -> `BasicItemDescriptor` for `ItemBlockRef` (extract)
 
 #### Example
 
-- The root item block initialized as `BasicDescriptor` for `StringRef` referencing an empty string:
+- The root `ItemBlock` initialized as `BasicItemDescriptor` for `StringRef` referencing `u""`:
 
 ```
-ItemBlock (root item block)
+ItemBlock (#0 root)
 (OnChildConvert(child, callback: Descriptor -> Descriptor): update descriptor reference, propagate data change)
-- BasicDescriptor : Descriptor
+- BasicItemDescriptor : Descriptor
   (OnConvert: create new descriptor from self)
-  - StringRef : InlineItem
-    (OnStringUpdate: lookup/create entry in the string table, update block reference, propagate data change)
+  - StringRef : BasicItem
+    (OnStringUpdate: lookup/create entry in `StringTable`, update block reference, propagate data change)
     - block<std::u16string> (u"")
 ```
 
-- `BasicDescriptor` converted to `TupleDescriptor`:
+- `BasicItemDescriptor` converted to `TupleDescriptor`:
 
 ```
-ItemBlock (root item block)
+ItemBlock (#0 root)
 - TupleDescriptor : Descriptor
   (OnAppend: append a child descriptor)
   (OnInsertBefore: insert a child descriptor before another)
-  - BasicDescriptor : Descriptor
-    - StringRef : InlineItem
+  - BasicItemDescriptor : Descriptor
+    - StringRef : BasicItem
       - block<std::u16string> (u"")
 ```
 
-- `TupleDescriptor` added a child of `TupleDescriptor`:
+- `TupleDescriptor` added a child of `TupleDescriptor` with no child descriptor:
 
 ```
-ItemBlock (root item block)
+ItemBlock (#0 root)
 - TupleDescriptor : Descriptor
-  - BasicDescriptor : Descriptor
-    - StringRef : InlineItem
+  - BasicItemDescriptor : Descriptor
+    - StringRef : BasicItem
       - block<std::u16string> (u"")
   - TupleDescriptor : Descriptor
 ```
 
-- The child `TupleDescriptor` added two children of `BasicDescriptor` for `StringRef` referencing the empty string:
+- The child `TupleDescriptor` added two child descriptors of `BasicItemDescriptor` for `StringRef` referencing `u""`:
 
 ```
-ItemBlock (root item block)
+ItemBlock (#0 root)
 - TupleDescriptor : Descriptor
-  - BasicDescriptor : Descriptor
-    - StringRef : InlineItem
+  - BasicItemDescriptor : Descriptor
+    - StringRef : BasicItem
       - block<std::u16string> (u"")
   - TupleDescriptor : Descriptor
-    (OnWrap: create an item block initialized with self, convert self to `BasicDescriptor` for `ItemBlockRef` referencing the block)
-    - BasicDescriptor : Descriptor
-      - StringRef : InlineItem
+    (OnExtract: create `ItemBlock` initialized with self, convert self to `BasicItemDescriptor` for `ItemBlockRef` referencing the `ItemBlock`)
+    - BasicItemDescriptor : Descriptor
+      - StringRef : BasicItem
         - block<std::u16string> (u"")
-    - BasicDescriptor : Descriptor
-      - StringRef : InlineItem
+    - BasicItemDescriptor : Descriptor
+      - StringRef : BasicItem
         - block<std::u16string> (u"")
 ```
 
-- The child `TupleDescriptor` wrapped to `BasicDescriptor` for `ItemBlockRef`:
+- The child `TupleDescriptor` extracted to a new block referenced by `ItemBlockRef` as `BasicItemDescriptor`:
 
 ```
-ItemBlock (root item block)
+ItemBlock (#0 root)
 - TupleDescriptor : Descriptor
-  - BasicDescriptor : Descriptor
-    - StringRef : InlineItem
+  - BasicItemDescriptor : Descriptor
+    - StringRef : BasicItem
       - block<std::u16string> (u"")
-  - BasicDescriptor : Descriptor
-    - ItemBlockRef : InlineItem
-      - block_ref (ItemBlock)
-        - TupleDescriptor : Descriptor
-          - BasicDescriptor : Descriptor
-            - StringRef : InlineItem
-              - block<std::u16string> (u"")
-          - BasicDescriptor : Descriptor
-            - StringRef : InlineItem
-              - block<std::u16string> (u"")
+  - BasicItemDescriptor : Descriptor
+    - ItemBlockRef : BasicItem
+      - item_block_ref (#1)
+
+ItemBlock (#1)
+- TupleDescriptor : Descriptor
+  - BasicItemDescriptor : Descriptor
+    - StringRef : BasicItem
+      - block<std::u16string> (u"")
+  - BasicItemDescriptor : Descriptor
+    - StringRef : BasicItem
+      - block<std::u16string> (u"")
 ```
 
-### GUI
+### UI
 
-All item views and helper controls are displayed as view components with *ViewDesign*.
+All view components and helper controls are built with *ViewDesign*.
 
-#### Main Window
+#### MainWindow
 
-The main window displays:
-- the current block view (initial as root block view)
+displays:
+- one fixed tab for root `ItemBlockView`
+- additional tabs for `ItemBlockView`
 
-#### BlockView
+provides context:
+- `StringTable&`
+- `DescriptorRegistry&`
+- `OpenTab(item_block_ref)`
 
-`BlockView` displays the current item block with *descriptor any* type.
+#### ItemBlockView
 
-It can be displayed inline in a `DescriptorAnyRefView`, or displayed in an individual tab.
+can be displayed in a tab in `MainWindow` or inline in `ItemBlockRefView`
 
-A `BlockView` contains the root `ItemView`.
+displays the current `ItemBlock` holding the top-level `DescriptorView`
 
-#### ItemView
-
-`ItemView` is inherited by:
-- `StringRefView`
-- `DescriptorAnyRefView`
-- `DescriptorAnyView`
-
-#### DescriptorAnyView
+consumes context `DescriptorRegistry&` and passes it to `DescriptorView`
 
 #### DescriptorView
 
-`DescriptorView` is inherited by:
-- `BasicDescriptorView`: contains `ItemView`
-- `TupleDescriptorView`: contains a list of `DescriptorView`
-- `DynamicLengthArrayDescriptorView`: contains a list of `DescriptorView` sharing the same descriptor
+inherited by:
+- `BasicItemDescriptorView`
+- `TupleDescriptorView`
+- `DynamicLengthArrayDescriptorView`
+
+(verbose) displays conversion options:
+- convert to `Tuple` as child
+- convert to `DynamicLengthArray` as child
+- extract as block
+
+##### BasicItemDescriptorView
+
+contains `BasicItemView`
+
+##### TupleDescriptorView
+
+contains a list of `DescriptorView`
+
+(verbose) displays additional conversion options:
+- add/update/remove a child descriptor
+- convert to `DynamicLengthArray` (enabled if all children share the same descriptor)
+
+##### DynamicLengthArrayDescriptorView
+
+contains a list of `DescriptorView` sharing the same descriptor
+
+(verbose) displays additional conversion options:
+- convert to `Tuple`
+
+#### BasicItemView
+
+inherited by:
+- `StringRefView`
+- `ItemBlockRefView`
+
+##### StringRefView
+
+consumes context `StringTable&`
+
+##### ItemBlockRefView
+
+consumes context `OpenTab(item_block_ref)`
+
+opens a tab for the `ItemBlockView` or displays it inline
