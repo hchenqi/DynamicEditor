@@ -1,6 +1,6 @@
 # DynamicEditor
 
-An editor with dynamic schemas
+An editor for dynamic schema
 
 ## Demo
 
@@ -216,51 +216,25 @@ provides:
 
 displays:
 - (`schema_mode`)
-  - `Button`: create `Tuple` copying self as child
-  - `Button`: create `DynamicLengthArray` copying self as child
-  - `Button`: create `BasicItem` for `ItemBlockRef` referencing block initialized with copy of self
-- `Button`: delete self
-- `Button`: select self
-- `Button`: paste replacing self with `Clipboard::OnDescriptorViewPaste()`
+  - `Button`: create `Tuple` copying self as child and replace self
+  - `Button`: create `DynamicLengthArray` copying self as child and replace self
+  - `Button`: create `BasicItem` for `ItemBlockRef` referencing block initialized with copy of self and replace self
+- `Button`: select self and set focus (update transient state `selected` which resets at `LoseFocus`)
 
 shortcut:
-- (selected) ctrl+C: copy self as `DescriptorView::ConstReference` to `Clipboard`
+- (`selected`)
+  - ctrl+C: copy self as `DescriptorView::ConstReference` to `Clipboard`
+  - ctrl+V: replace self with `Clipboard::PasteAsDescriptorView()`
+  - delete: delete self
 
 ##### BasicItemDescriptorView
 
 displays:
-- `BasicItemView`
+- `BasicItemView` inherited by:
+  - `StringRefView`
+  - `ItemBlockRefView`
 
-##### TupleDescriptorView
-
-consumes context:
-- (state) `bool schema_mode`
-
-displays:
-- (`schema_mode`) additional conversion options:
-  - add/update/remove a child descriptor
-  - convert to `DynamicLengthArray` (enabled if all children share the same descriptor)
-- a list of `DescriptorView`
-- 
-
-##### DynamicLengthArrayDescriptorView
-
-consumes context:
-- (state) `bool schema_mode`
-
-displays:
-- (`schema_mode`) additional conversion options:
-  - convert to `Tuple`
-- a list of `DescriptorView` sharing the same descriptor
-- `Button` for adding/removing child descriptors
-
-#### BasicItemView
-
-inherited by:
-- `StringRefView`
-- `ItemBlockRefView`
-
-##### StringRefView
+###### StringRefView
 
 consumes context:
 - (state) `bool verbose`
@@ -272,7 +246,7 @@ displays:
   - `TextView`: unmodified string
 - `TextEditor` (focusable): edit the current string (mark if it is modified)
 
-##### ItemBlockRefView
+###### ItemBlockRefView
 
 consumes context:
 - (state) `bool verbose`
@@ -285,3 +259,33 @@ displays:
 - `Button`: open tab `ItemBlockView`
 - (`selected`):
   - the inline `ItemBlockView`
+
+##### TupleDescriptorView
+
+consumes context:
+- (state) `bool schema_mode`
+
+displays:
+- (`schema_mode`):
+  - `Button`: add/remove child descriptor
+  - `Button`: convert to `DynamicLengthArray` (enabled if all children share the same descriptor)
+- a list of `DescriptorView`
+
+##### DynamicLengthArrayDescriptorView
+
+consumes context:
+- (state) `bool schema_mode`
+
+displays:
+- (`schema_mode`):
+  - `Button`: create `Tuple` copied from self
+- a list of `DescriptorView` sharing the same descriptor
+- `Button`: add/remove child descriptor
+
+## License
+
+All contents of this repository are provided for viewing purposes only.
+
+All rights reserved.
+
+Issues or feedbacks are welcome.
