@@ -12,11 +12,11 @@ An editor with dynamic schemas
 
 ### Extracting as Block
 
-## Build Instructions
+## Build
 
 This project can be built with CMake on Windows. It depends on two other major projects of mine, *BlockStore* and *ViewDesign*.
 
-## Implementation
+## Design
 
 The implementation is based on and simplified from the example described in [Preparation](docs/preparation.md).
 
@@ -166,19 +166,24 @@ provides context:
 - `Clipboard&`
 
 displays:
-- a `Select`: updating state `verbose`
-- a `Select`: updating state `schema_mode`
-- one fixed tab for `Clipboard`
-- one fixed tab for root `ItemBlockView`
-- additional tabs for `ItemBlockView`
+- `Select`: update state `verbose`
+- `Select`: update state `schema_mode`
+- fixed tab: `Clipboard`
+- fixed tab: root `ItemBlockView`
+- tabs: `ItemBlockView`
 
 #### Clipboard
 
 type:
 - `String`
 - `item_block_ref`
-- `Descriptor`
-- `Descriptor` with data
+- `DescriptorView::ConstReference`
+
+provides:
+- `PasteAsDescriptorView()`:
+  - `String`: create `BasicItemDescriptor` for `StringRef` referencing the string
+  - `item_block_ref`: create `BasicItemDescriptor` for `ItemBlockRef` storing the reference
+  - `DescriptorView::ConstReference`: create `DescriptorView` copied from the reference
 
 #### ItemBlockView
 
@@ -191,7 +196,7 @@ consumes context:
 - `Clipboard&`
 
 displays:
-- a `Button`: copying self as `BasicItemDescriptor` for `ItemBlockRef` to `Clipboard`
+- `Button`: copy self as `item_block_ref` to `Clipboard`
 - top-level `DescriptorView` of the `ItemBlock`
 
 #### DescriptorView
@@ -204,15 +209,22 @@ inherited by:
 consumes context:
 - (state) `bool schema_mode`
 
+provides:
+- `Copy()`: create `DescriptorView` copying self
+- `OnChildReplace(DescriptorView& child, std::unique_ptr<DescriptorView>)`: replace child with a new one
+- `Undo()` / `Redo()`
+
 displays:
-- (`schema_mode`) conversion options:
-  - convert to `Tuple` as child
-  - convert to `DynamicLengthArray` as child
-  - extract as block
-- a `Button`: selecting self
+- (`schema_mode`)
+  - `Button`: create `Tuple` copying self as child
+  - `Button`: create `DynamicLengthArray` copying self as child
+  - `Button`: create `BasicItem` for `ItemBlockRef` referencing block initialized with copy of self
+- `Button`: delete self
+- `Button`: select self
+- `Button`: paste replacing self with `Clipboard::OnDescriptorViewPaste()`
 
 shortcut:
-- (selected) ctrl+C: copy self to clipboard
+- (selected) ctrl+C: copy self as `DescriptorView::ConstReference` to `Clipboard`
 
 ##### BasicItemDescriptorView
 
@@ -255,9 +267,10 @@ consumes context:
 - `StringTable&`
 
 displays:
-- (`verbose`) the block reference and `TextView` of the unmodified string
-- `TextEditor` (focusable):
-  - edit the current string (mark if it is modified)
+- (`verbose`):
+  - block reference
+  - `TextView`: unmodified string
+- `TextEditor` (focusable): edit the current string (mark if it is modified)
 
 ##### ItemBlockRefView
 
@@ -266,7 +279,9 @@ consumes context:
 - `OpenTab(item_block_ref)`
 
 displays:
-- (`verbose`) the block reference
-- a `Select` for displaying/hiding inline `ItemBlockView` (updating state `selected`)
-- a `Button` for opening tab `ItemBlockView`
-- (selected) the inline `ItemBlockView`
+- (`verbose`):
+  - block reference
+- `Select`: display/hide inline `ItemBlockView` (updating state `selected`)
+- `Button`: open tab `ItemBlockView`
+- (`selected`):
+  - the inline `ItemBlockView`
