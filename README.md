@@ -210,22 +210,25 @@ consumes context:
 - (state) `bool schema_mode`
 
 provides:
-- `Copy()`: create `DescriptorView` copying self
-- `OnChildReplace(DescriptorView& child, std::unique_ptr<DescriptorView>)`: replace child with a new one
-- `Undo()` / `Redo()`
+- `CopySelfAsReference()`: create `DescriptorView::ConstReference` from self
+- `CopySelf()`: create `DescriptorView` copying self
+- `ReplaceSelf(std::unique_ptr<DescriptorView>)`: replace self with another in parent `DescriptorView`
+- `DeleteSelf()`: delete self in parent `DescriptorView`
+- `virtual OnChildReplace(DescriptorView& child, std::unique_ptr<DescriptorView>)`
+- `virtual OnChildDelete(DescriptorView& child)`
 
 displays:
 - (`schema_mode`)
-  - `Button`: create `Tuple` copying self as child and replace self
-  - `Button`: create `DynamicLengthArray` copying self as child and replace self
-  - `Button`: create `BasicItem` for `ItemBlockRef` referencing block initialized with copy of self and replace self
+  - `Button`: call `ReplaceSelf()` with `TupleDescriptorView` constructed with one child from `CopySelf()`
+  - `Button`: call `ReplaceSelf()` with `DynamicLengthArrayDescriptorView` constructed with one child from `CopySelf()`
+  - `Button`: call `ReplaceSelf()` with `BasicItemDescriptorView` constructed with `ItemBlockRef` referencing the `ItemBlock` constructed from `CopySelf()` displaying inline `ItemBlockView`
 - `Button`: select self and set focus (update transient state `selected` which resets at `LoseFocus`)
 
 shortcut:
 - (`selected`)
-  - ctrl+C: copy self as `DescriptorView::ConstReference` to `Clipboard`
-  - ctrl+V: replace self with `Clipboard::PasteAsDescriptorView()`
-  - delete: delete self
+  - ctrl+C: push `CopySelfAsReference()` to `Clipboard`
+  - ctrl+V: call `ReplaceSelf()` with `Clipboard::PasteAsDescriptorView()`
+  - delete: call `DeleteSelf()`
 
 ##### BasicItemDescriptorView
 
@@ -265,10 +268,14 @@ displays:
 consumes context:
 - (state) `bool schema_mode`
 
+overrides:
+- `virtual OnChildReplace(DescriptorView& child, std::unique_ptr<DescriptorView>)`: replace child with another and update descriptor
+- `virtual OnChildDelete(DescriptorView& child)`: delete child and update descriptor
+
 displays:
 - (`schema_mode`):
   - `Button`: add/remove child descriptor
-  - `Button`: convert to `DynamicLengthArray` (enabled if all children share the same descriptor)
+  - `Button` (enabled if all children share the same descriptor): call `ReplaceSelf()` with `DynamicLengthArrayDescriptorView` constructed with children copied from self
 - a list of `DescriptorView`
 
 ##### DynamicLengthArrayDescriptorView
@@ -276,15 +283,19 @@ displays:
 consumes context:
 - (state) `bool schema_mode`
 
+overrides:
+- `virtual OnChildReplace(DescriptorView& child, std::unique_ptr<DescriptorView>)`: if descriptor matches, replace child with another, else show error message
+- `virtual OnChildDelete(DescriptorView& child)`: delete child
+
 displays:
 - (`schema_mode`):
-  - `Button`: create `Tuple` copied from self
-- a list of `DescriptorView` sharing the same descriptor
+  - `Button`: call `ReplaceSelf()` with `TupleDescriptorView` constructed with children copied from self
+- a list of child `DescriptorView` sharing the same descriptor
 - `Button`: add/remove child descriptor
 
 ## License
 
-All contents of this repository are provided for viewing purposes only.
+The contents of this repository are provided for viewing purposes only.
 
 All rights reserved.
 
