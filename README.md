@@ -161,6 +161,7 @@ provides context:
 - (state) `bool verbose`
 - (state) `bool schema_mode`
 - `StringTable&`
+- `ItemBlockCache&`
 - `DescriptorRegistry&`
 - `OpenTab(item_block_ref)`
 - `Clipboard&`
@@ -168,22 +169,28 @@ provides context:
 displays:
 - `Select`: update state `verbose`
 - `Select`: update state `schema_mode`
-- fixed tab: `Clipboard`
-- fixed tab: root `ItemBlockView`
-- tabs: `ItemBlockView`
+- tab (fixed): `Clipboard`
+- tab (fixed): root `ItemBlockView`
+- tabs (closable): `ItemBlockView`
 
 #### Clipboard
 
 type:
-- `String`
-- `item_block_ref`
+- `String` (possibly from external)
+- `ItemBlockView::ConstReference`
 - `DescriptorView::ConstReference`
 
 provides:
-- `PasteAsDescriptorView()`:
+- `Put(String)`
+- `Put(ItemBlockView::ConstReference)`
+- `Put(DescriptorView::ConstReference)`
+- `std::unique_ptr<DescriptorView> GetDescriptorView()`:
   - `String`: create `BasicItemDescriptor` for `StringRef` referencing the string
-  - `item_block_ref`: create `BasicItemDescriptor` for `ItemBlockRef` storing the reference
+  - `ItemBlockView::ConstReference`: create `BasicItemDescriptor` for `ItemBlockRef` storing the `item_block_ref` of the `ItemBlockView`
   - `DescriptorView::ConstReference`: create `DescriptorView` copied from the reference
+
+displays:
+- `ListLayout` as a stack of clipboard items with type and preview, the newest on top
 
 #### ItemBlockView
 
@@ -192,12 +199,19 @@ can be displayed:
 - inline in `ItemBlockRefView`
 
 consumes context:
-- `DescriptorRegistry&` (passed to `DescriptorView`)
+- `ItemBlockCache&`
+- `DescriptorRegistry&` (passed as argument to `DescriptorView`)
 - `Clipboard&`
 
+consumes argument:
+- `item_block_ref`
+
+provides:
+- `GetReference()`: create `ItemBlockView::ConstReference` from self
+
 displays:
-- `Button`: copy self as `item_block_ref` to `Clipboard`
-- top-level `DescriptorView` of the `ItemBlock`
+- `Button`: put `GetReference()` to `Clipboard`
+- top-level `DescriptorView` of the `ItemBlock` read from and synchronized by `ItemBlockCache&`
 
 #### DescriptorView
 
@@ -208,26 +222,30 @@ inherited by:
 
 consumes context:
 - (state) `bool schema_mode`
+- `Clipboard&`
+
+consumes argument:
+- `DescriptorRegistry&` (passed as argument to child `DescriptorView`)
 
 provides:
-- `CopySelfAsReference()`: create `DescriptorView::ConstReference` from self
-- `CopySelf()`: create `DescriptorView` copying self
+- `GetReference()`: create `DescriptorView::ConstReference` from self
+- `DuplicateSelf()`: create `DescriptorView` copying self
 - `ReplaceSelf(std::unique_ptr<DescriptorView>)`: replace self with another in parent `DescriptorView`
 - `DeleteSelf()`: delete self in parent `DescriptorView`
-- `virtual OnChildReplace(DescriptorView& child, std::unique_ptr<DescriptorView>)`
-- `virtual OnChildDelete(DescriptorView& child)`
+- `virtual void OnChildReplace(DescriptorView& child, std::unique_ptr<DescriptorView>) {}`
+- `virtual void OnChildDelete(DescriptorView& child) {}`
 
 displays:
 - (`schema_mode`)
-  - `Button`: call `ReplaceSelf()` with `TupleDescriptorView` constructed with one child from `CopySelf()`
-  - `Button`: call `ReplaceSelf()` with `DynamicLengthArrayDescriptorView` constructed with one child from `CopySelf()`
-  - `Button`: call `ReplaceSelf()` with `BasicItemDescriptorView` constructed with `ItemBlockRef` referencing the `ItemBlock` constructed from `CopySelf()` displaying inline `ItemBlockView`
+  - `Button`: call `ReplaceSelf()` with `TupleDescriptorView` constructed with one child from `DuplicateSelf()`
+  - `Button`: call `ReplaceSelf()` with `DynamicLengthArrayDescriptorView` constructed with one child from `DuplicateSelf()`
+  - `Button`: call `ReplaceSelf()` with `BasicItemDescriptorView` constructed with `ItemBlockRef` referencing the `ItemBlock` constructed from `DuplicateSelf()` displaying inline `ItemBlockView`
 - `Button`: select self and set focus (update transient state `selected` which resets at `LoseFocus`)
 
 shortcut:
 - (`selected`)
-  - ctrl+C: push `CopySelfAsReference()` to `Clipboard`
-  - ctrl+V: call `ReplaceSelf()` with `Clipboard::PasteAsDescriptorView()`
+  - ctrl+C: put `GetReference()` to `Clipboard`
+  - ctrl+V: call `ReplaceSelf()` with `Clipboard::GetDescriptorView()`
   - delete: call `DeleteSelf()`
 
 ##### BasicItemDescriptorView
@@ -248,6 +266,7 @@ displays:
   - block reference
   - `TextView`: unmodified string
 - `TextEditor` (focusable): edit the current string (mark if it is modified)
+- `Button` (enabled if string modified): commit the string
 
 ###### ItemBlockRefView
 
@@ -258,9 +277,9 @@ consumes context:
 displays:
 - (`verbose`):
   - block reference
-- `Select`: display/hide inline `ItemBlockView` (updating state `selected`)
+- `Select`: display/hide inline `ItemBlockView` (updating state `show_inline`)
 - `Button`: open tab `ItemBlockView`
-- (`selected`):
+- (`show_inline`):
   - the inline `ItemBlockView`
 
 ##### TupleDescriptorView
@@ -269,12 +288,12 @@ consumes context:
 - (state) `bool schema_mode`
 
 overrides:
-- `virtual OnChildReplace(DescriptorView& child, std::unique_ptr<DescriptorView>)`: replace child with another and update descriptor
-- `virtual OnChildDelete(DescriptorView& child)`: delete child and update descriptor
+- `virtual void OnChildReplace(DescriptorView& child, std::unique_ptr<DescriptorView>)`: replace child with another and update descriptor
+- `virtual void OnChildDelete(DescriptorView& child)`: delete child and update descriptor
 
 displays:
 - (`schema_mode`):
-  - `Button`: add/remove child descriptor
+  - `Button` (before each child and at the end): add/remove child descriptor
   - `Button` (enabled if all children share the same descriptor): call `ReplaceSelf()` with `DynamicLengthArrayDescriptorView` constructed with children copied from self
 - a list of `DescriptorView`
 
@@ -284,14 +303,14 @@ consumes context:
 - (state) `bool schema_mode`
 
 overrides:
-- `virtual OnChildReplace(DescriptorView& child, std::unique_ptr<DescriptorView>)`: if descriptor matches, replace child with another, else show error message
-- `virtual OnChildDelete(DescriptorView& child)`: delete child
+- `virtual void OnChildReplace(DescriptorView& child, std::unique_ptr<DescriptorView>)`: if descriptor matches, replace child with another, else show error message
+- `virtual void OnChildDelete(DescriptorView& child)`: delete child
 
 displays:
+- `Button` (before each child and at the end): add/remove child descriptor
 - (`schema_mode`):
   - `Button`: call `ReplaceSelf()` with `TupleDescriptorView` constructed with children copied from self
 - a list of child `DescriptorView` sharing the same descriptor
-- `Button`: add/remove child descriptor
 
 ## License
 
