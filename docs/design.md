@@ -1,45 +1,27 @@
-# DynamicEditor
+# Design
 
-An editor for dynamic schema
+The design is based on and simplified from the example described in [Preparation](preparation.md).
 
-## Demo
-
-### Initializing
-
-### Converting to Tuple
-
-### Appending Child
-
-### Extracting as Block
-
-## Build
-
-This project can be built with CMake on Windows. It depends on two other major projects of mine, *BlockStore* and *ViewDesign*.
-
-## Design
-
-The implementation is based on and simplified from the example described in [Preparation](docs/preparation.md).
-
-### Data
+## Data
 
 The metadata and all item data are stored as blocks with *BlockStore*.
 
-#### Metadata
+### Metadata
 
 as the global root block, storing a tuple of:
 - reference of `StringTable`
 - reference of `DescriptorRegistry`
 - reference of root `ItemBlock`
 
-#### StringTable
+### StringTable
 
 an *ordered reference set* of all `String` (`std::u16string`) indexed and ordered by the strings themselves
 
-#### DescriptorRegistry
+### DescriptorRegistry
 
 an *ordered reference set* of all `Descriptor` indexed and ordered by the descriptors themselves
 
-#### ItemBlock
+### ItemBlock
 
 type:
 - `DescriptorAny`: `descriptor_ref, ...`
@@ -70,7 +52,7 @@ descriptor type conversion:
 - `DynamicLengthArrayDescriptor` <-> `TupleDescriptor` (natural: distribution; restricted(children with the same descriptor): reverse-distribution)
 - `BasicItemDescriptor` | `TupleDescriptor` | `DynamicLengthArrayDescriptor` -> `BasicItemDescriptor` for `ItemBlockRef` (extract)
 
-##### Example
+#### Example
 
 - root `ItemBlock` initialized as `BasicItemDescriptor` for `StringRef` referencing `u""`:
 
@@ -147,15 +129,15 @@ ItemBlock (#1)
       - block<String> (u"")
 ```
 
-#### ItemBlockCache
+### ItemBlockCache
 
 caches `ItemBlock` and synchronizes data for `ItemBlockView`
 
-### View
+## View
 
 All view components and helper controls are built with *ViewDesign*.
 
-#### MainWindow
+### MainWindow
 
 provides context:
 - (state) `bool verbose`
@@ -173,7 +155,7 @@ displays:
 - tab (fixed): root `ItemBlockView`
 - tabs (closable): `ItemBlockView`
 
-#### Clipboard
+### Clipboard
 
 type:
 - `String` (possibly from external)
@@ -192,7 +174,7 @@ provides:
 displays:
 - `ListLayout` as a stack of clipboard items with type and preview, the newest on top
 
-#### ItemBlockView
+### ItemBlockView
 
 can be displayed:
 - as a tab in `MainWindow`
@@ -213,7 +195,7 @@ displays:
 - `Button`: put `GetReference()` to `Clipboard`
 - top-level `DescriptorView` of the `ItemBlock` read from and synchronized by `ItemBlockCache&`
 
-#### DescriptorView
+### DescriptorView
 
 inherited by:
 - `BasicItemDescriptorView`
@@ -248,14 +230,14 @@ shortcut:
   - ctrl+V: call `ReplaceSelf()` with `Clipboard::GetDescriptorView()`
   - delete: call `DeleteSelf()`
 
-##### BasicItemDescriptorView
+#### BasicItemDescriptorView
 
 displays:
 - `BasicItemView` inherited by:
   - `StringRefView`
   - `ItemBlockRefView`
 
-###### StringRefView
+##### StringRefView
 
 consumes context:
 - (state) `bool verbose`
@@ -268,7 +250,7 @@ displays:
 - `TextEditor` (focusable): edit the current string (mark if it is modified)
 - `Button` (enabled if string modified): commit the string
 
-###### ItemBlockRefView
+##### ItemBlockRefView
 
 consumes context:
 - (state) `bool verbose`
@@ -282,7 +264,7 @@ displays:
 - (`show_inline`):
   - the inline `ItemBlockView`
 
-##### TupleDescriptorView
+#### TupleDescriptorView
 
 consumes context:
 - (state) `bool schema_mode`
@@ -297,7 +279,7 @@ displays:
   - `Button` (enabled if all children share the same descriptor): call `ReplaceSelf()` with `DynamicLengthArrayDescriptorView` constructed with children copied from self
 - a list of `DescriptorView`
 
-##### DynamicLengthArrayDescriptorView
+#### DynamicLengthArrayDescriptorView
 
 consumes context:
 - (state) `bool schema_mode`
@@ -311,11 +293,3 @@ displays:
 - (`schema_mode`):
   - `Button`: call `ReplaceSelf()` with `TupleDescriptorView` constructed with children copied from self
 - a list of child `DescriptorView` sharing the same descriptor
-
-## License
-
-The contents of this repository are provided for viewing purposes only.
-
-All rights reserved.
-
-Issues or feedbacks are welcome.
