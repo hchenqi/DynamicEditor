@@ -1,17 +1,21 @@
-// COWRef (Copy-On-Write Reference) stores either a reference or a `unique_ptr` that is created only when the data needs to be modified
+// COWRef (Copy-On-Write Reference)
 
+#include <functional>
 #include <memory>
-#include <stdexcept>
 
 template<class T>
 class COWRef {
 private:
-	const T* ref;
-	std::unique_ptr<T> ptr;
+	std::reference_wrapper<const T> ref;
+	std::unique_ptr<const T> ptr;
 public:
-	COWRef(std::unique_ptr<T> ptr) : ref(ptr.get()), ptr(std::move(ptr)) { if (ref == nullptr) { throw std::invalid_argument("COWRef: ptr is null"); } }
-	COWRef(const COWRef& other) : ref(other.ref), ptr() {}
+	COWRef(std::unique_ptr<const T> ptr) : ref(*ptr), ptr(std::move(ptr)) {}
+	COWRef(const COWRef& other) : ref(other.ref), ptr(nullptr) {}
+	COWRef(COWRef&& other) : ref(other.ref), ptr(std::move(other.ptr)) {}
 public:
-	const T& Read() const { return *ref; }
-	T& Write() { if (ptr == nullptr) { ptr = std::make_unique<T>(*ref); ref = ptr.get(); } return *ptr; }
+	void operator=(const COWRef& other) { ref = other.ref; ptr = nullptr; }
+	void operator=(COWRef&& other) { ref = other.ref; ptr = std::move(other.ptr); }
+public:
+	const T& Get() const { return ref.get(); }
+	void Set(std::unique_ptr<const T> ptr) { operator=(std::move(ptr)); }
 };

@@ -2,15 +2,15 @@
 
 > The implementation is based on [Design](design.md) with a modified structure and an emphasis on `History` and operations.
 
-## Utility
+## ItemRef
 
-### COWRef (Copy-On-Write Reference)
+copy-on-write reference for `Item`
 
-offers a wrapper that either holds a const reference pointing to another object, or holds a `std::unique_ptr<T>` owning the object that can be modified
+specialization of `COWRef<T>` (utility) which either holds a const reference or an owning `std::unique_ptr<const T>`
 
-used to implement copy-on-write `Item` tree for operations with `History` stacks, where references to objects in previous stack entries are ensured to be alive
+used to store items with `History` stacks, where references to objects in previous stack entries are ensured to be alive
 
-(the const reference can be replaced with `std::shared_ptr<const T>` and the owner `std::shared_ptr<T>`, in case some entries need to be dropped so the later entry takes the ownership automatically)
+(the const reference and the `std::unique_ptr<const T>` can be replaced with a single `std::shared_ptr<const T>` to support dropping entries in the stacks and automatically transferring the ownership to the later entries)
 
 ## Context
 
@@ -85,12 +85,26 @@ as the global root block, storing a tuple of:
 
 ## Item
 
-### BasicDescriptor
+owned or referenced by `ItemRef`
 
-#### StringRef
+provides:
+- `UpdateSelf(std::unique_ptr<const Item>)`, `virtual OnChildUpdate(Item&, std::unique_ptr<const Item>)`: called within an `Operation` when self is to be modified, updates the entire branch on the tree
 
-#### ItemBlockRef
+### StringRef
 
-### TupleDescriptor
+provides:
 
-### DynamicLengthArrayDescriptor
+
+### ItemBlockRef
+
+### Descriptor
+
+#### BasicDescriptor
+
+#### TupleDescriptor
+
+#### DynamicLengthArrayDescriptor
+
+## ItemView
+
+owned by an `Item` 
