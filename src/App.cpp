@@ -1,12 +1,12 @@
-#include "ViewDesign/view/widget/DefaultWindow.h"
-#include "ViewDesign/view/frame/ClipFrame.h"
-#include "ViewDesign/view/frame/PaddingFrame.h"
-#include "ViewDesign/view/control/TextEditor.h"
-#include "ViewDesign/view/wrapper/Background.h"
+#include <ViewDesign/view/widget/DefaultWindow.h>
+#include <ViewDesign/view/frame/ClipFrame.h>
+#include <ViewDesign/view/frame/PaddingFrame.h>
+#include <ViewDesign/view/control/TextEditor.h>
+#include <ViewDesign/view/wrapper/Background.h>
 
-#include "BlockStore/core/manager.h"
-#include "BlockStore/data/block.h"
-#include "CppSerialize/stl/string.h"
+#include <BlockStore/core/manager.h>
+#include <BlockStore/data/block.h>
+#include <CppSerialize/stl/string.h>
 
 
 using namespace ViewDesign;

@@ -6,7 +6,7 @@
 
 copy-on-write reference for `Item`
 
-specialization of `COWRef<T>` (utility) which either holds a const reference or an owning `std::unique_ptr<const T>`
+specialization of `COWRef<T>` which either holds a const reference or an owning `std::unique_ptr<const T>`
 
 used to store items with `History` stacks, where references to objects in previous stack entries are ensured to be alive
 
@@ -20,9 +20,13 @@ application-level singletons
 
 a persistent *ordered reference set* of all `Descriptor`, ordered by and indexed with the descriptors themselves
 
+also caches the descriptors
+
 ### StringTable
 
 a persistent *ordered reference set* of all `String` (`std::u16string`) ordered by and indexed with the strings themselves
+
+also caches the strings
 
 ### ItemBlockCache
 
@@ -87,8 +91,8 @@ as the global root block, storing a tuple of:
 
 owned or referenced by `ItemRef`
 
-provides:
-- `UpdateSelf(std::unique_ptr<const Item>)`, `virtual OnChildUpdate(Item&, std::unique_ptr<const Item>)`: called within an `Operation` when self is to be modified, updates the entire branch on the tree
+owns mutable `View`, which provides:
+- `UpdateSelf(std::unique_ptr<const Item>)`, `virtual OnChildUpdate(View&, std::unique_ptr<const Item>)`: called within an `Operation` when self is to be modified, updates the entire branch of the item tree
 
 ### StringRef
 
@@ -104,7 +108,3 @@ provides:
 #### TupleDescriptor
 
 #### DynamicLengthArrayDescriptor
-
-## ItemView
-
-owned by an `Item` 
