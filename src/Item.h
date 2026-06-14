@@ -1,3 +1,5 @@
+#pragma once
+
 #include "COWRef.h"
 #include "History.h"
 
@@ -26,7 +28,6 @@ protected:
 	}
 public:
 	virtual Type GetType() const { return -1; }
-
 
 public:
 	class View : public ViewFrame {

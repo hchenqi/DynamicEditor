@@ -1,3 +1,5 @@
+#pragma once
+
 #include "Item.h"
 
 #include <BlockStore/item/OrderedRefSet.h>
@@ -5,6 +7,10 @@
 #include <ViewDesign/view/layout/SplitLayout.h>
 #include <ViewDesign/view/control/TextView.h>
 #include <ViewDesign/view/control/TextEditor.h>
+#include <ViewDesign/event/timer.h>
+
+#include <optional>
+#include <chrono>
 
 
 template<class T>
@@ -46,9 +52,10 @@ public:
 		View(const std::u16string& str) : Item::View(
 			new SplitLayoutVertical(
 				new TextView(TextView::Style(), str),
-				new Editor(*this, str)
+				editor = new Editor(*this, str)
 			)
 		) {}
+
 	private:
 		class Editor : public TextEditor {
 		public:
@@ -58,15 +65,21 @@ public:
 		private:
 			virtual void OnTextUpdate() override {
 				TextEditor::OnTextUpdate();
-				view.OnTextUpdate(text);
+				view.OnTextUpdate();
 			}
 		};
+
 	private:
-		void OnTextUpdate(const std::u16string& str) const {
-			
+		ref_ptr<Editor> editor;
+	private:
+		mutable Timer update_timeout = Timer([&]() {
 			GetHistory().Operation([&]() {
-				UpdateSelf(std::make_unique<StringRef>(str));
+				UpdateSelf(std::make_unique<StringRef>(editor->GetText()));
 			});
+		});
+	private:
+		void OnTextUpdate() const {
+			update_timeout.Set(5000);
 		}
 	};
 private:

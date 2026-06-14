@@ -1,5 +1,7 @@
 // COWRef (Copy-On-Write Reference)
 
+#pragma once
+
 #include <functional>
 #include <memory>
 
