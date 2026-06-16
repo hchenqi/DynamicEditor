@@ -3,6 +3,7 @@
 #include "Item.h"
 #include "StringTable.h"
 #include "MainWindow.h"
+#include "LazyLoadFrame.h"
 
 #include <ViewDesign/view/layout/SplitLayout.h>
 #include <ViewDesign/view/control/TextView.h>
@@ -12,26 +13,37 @@
 
 class StringRef : public Item {
 public:
-	static const Type type;
-public:
-	virtual Type GetType() const override { return type; }
-
-public:
 	StringRef(block<std::u16string> ref) : ref(std::move(ref)) {}
 	StringRef(DeserializeContext& context) : StringRef(context.access<block<std::u16string>>()) {}
 
 private:
+	static const Type type;
+public:
+	virtual Type GetType() const override { return type; }
+
+private:
 	block<std::u16string> ref;
 
-public:
+private:
+	virtual std::unique_ptr<Item::View> CreateView() const override {
+		return std::make_unique<View>(*this);
+	}
+
+private:
 	class View : public Item::View, private Context<MainWindow> {
 	public:
-		View(const std::u16string& str) : Item::View(
-			new SplitLayoutVertical(
-				new TextView(TextView::Style(), str),
-				editor = new Editor(*this, str)
-			)
-		), Context(AsViewBase()) {}
+		View(StringRef& item) : Item::View(
+			new LazyLoadFrame([&]() {
+				auto str = GetStringTable().LookUp(item.ref);
+				return new SplitLayoutVertical(
+					new TextView(TextView::Style(), str.get()),
+					editor = new Editor(*this, str.get())
+				);
+			})
+		), Context(AsViewBase()), item(item) {}
+
+	private:
+		StringRef& item;
 
 	private:
 		StringTable& GetStringTable() { return Context::Get().GetStringTable(); }
@@ -54,7 +66,7 @@ public:
 	private:
 		mutable Timer update_timeout = Timer([&]() {
 			GetHistory().Operation([&]() {
-				UpdateSelf(std::make_unique<StringRef>(editor->GetText()));
+				UpdateSelf(std::make_unique<StringRef>(GetStringTable().Insert(editor->GetText())));
 			});
 		});
 	private:
@@ -62,8 +74,4 @@ public:
 			update_timeout.Set(5000);
 		}
 	};
-private:
-	virtual std::unique_ptr<Item::View> CreateView() const override {
-		return std::make_unique<View>(str.get());
-	}
 };

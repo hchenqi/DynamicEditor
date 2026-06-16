@@ -13,11 +13,12 @@ protected:
 
 protected:
 	class View : public Item::View, private Context<MainWindow> {
+	protected:
+		std::unique_ptr<Descriptor> ConstructDescriptor(descriptor_ref ref, DeserializeContext& context);
 	private:
 		DescriptorRegistry& GetDescriptorRegistry() const { return Context::Get().GetDescriptorRegistry(); }
 	protected:
-		block_view<DescriptorType, DescriptorRegistry::DescriptorCache> LookUpDescriptor(descriptor_ref ref) { return GetDescriptorRegistry().GetDescriptorCache().read(std::move(ref)); }
-		std::unique_ptr<Descriptor> ConstructDescriptor(descriptor_ref ref, DeserializeContext& context);
+		block_view<DescriptorType, DescriptorRegistry::DescriptorCache> LookUpDescriptor(descriptor_ref ref) const { return GetDescriptorRegistry().LookUp(std::move(ref)); }
 		descriptor_ref RegisterDescriptor(auto descriptor) const { return GetDescriptorRegistry().Insert(DescriptorType(std::move(descriptor))); }
 	public:
 		virtual Type GetDescriptorType() const = 0;
@@ -64,7 +65,7 @@ class TupleDescriptor : public Descriptor {
 public:
 	using Type = TupleDescriptorType;
 
-	private:
+private:
 	class View : public Descriptor::View {
 	private:
 		Type descriptor;
@@ -78,7 +79,7 @@ class DynamicLengthArrayDescriptor : public Descriptor {
 public:
 	using Type = DynamicLengthArrayDescriptorType;
 
-	private:
+private:
 	class View : public Descriptor::View {
 	private:
 		Type descriptor;

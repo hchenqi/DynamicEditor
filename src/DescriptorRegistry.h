@@ -38,6 +38,6 @@ public:
 	DescriptorRegistry(BlockCacheDynamic common_cache, block_ref ref) : descriptor_cache(ref.get_manager()), set(common_cache, common_cache, descriptor_cache, std::move(ref)) {}
 
 public:
-	DescriptorCache& GetDescriptorCache() { return descriptor_cache; }
+	block_view<DescriptorType, DescriptorCache> LookUp(descriptor_ref ref) { return descriptor_cache.read(std::move(ref)); }
 	descriptor_ref Insert(DescriptorType descriptor) { return set.insert(std::move(descriptor)).drop(); }
 };

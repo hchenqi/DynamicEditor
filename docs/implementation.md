@@ -1,6 +1,6 @@
 # Implementation
 
-> The implementation is based on [Design](design.md) with a modified structure and an emphasis on `History` and operations.
+> based on [Design](design.md), with a modified structure and an emphasis on `History` and operations
 
 ## ItemRef
 
@@ -12,25 +12,25 @@ used to store items with `History` stacks, where references to objects in previo
 
 (the const reference and the `std::unique_ptr<const T>` can be replaced with a single `std::shared_ptr<const T>` to support dropping entries in the stacks and automatically transferring the ownership to the later entries)
 
-## Context
+## Meta
 
-application-level singletons
+### Data
 
-### DescriptorRegistry
+as the global root block, storing a tuple of:
 
-a persistent *ordered reference set* of all `Descriptor`, ordered by and indexed with the descriptors themselves
+- reference of `DescriptorRegistry`: a persistent *ordered reference set* of all `Descriptor`, ordered by and indexed with the descriptors themselves
 
-also caches the descriptors
+- reference of `StringTable`: a persistent *ordered reference set* of all `String` (`std::u16string`) ordered by and indexed with the strings themselves
 
-### StringTable
+- reference of root `ItemBlock`
 
-a persistent *ordered reference set* of all `String` (`std::u16string`) ordered by and indexed with the strings themselves
+### Context
 
-also caches the strings
+provides the context of:
 
-### ItemBlockCache
+- `ItemBlockCache`: caches `ItemBlock` indexed by `item_block_ref` and synchronizes data for `ItemBlockView`
 
-caches `ItemBlock` indexed by `item_block_ref` and synchronizes data for `ItemBlockView`
+## MainWindow
 
 ### History
 
@@ -75,13 +75,6 @@ between operations, `Undo()` or `Redo()` can be called:
 - `Undo()`: pop last entry in `UndoStack` and push it to `RedoStack`, 
 
 - `Redo()` 
-
-## Metadata
-
-as the global root block, storing a tuple of:
-- reference of `DescriptorRegistry`
-- reference of `StringTable`
-- reference of root `ItemBlock`
 
 ## ItemBlock
 

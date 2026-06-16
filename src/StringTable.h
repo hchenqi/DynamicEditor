@@ -9,11 +9,11 @@ using namespace BlockStore;
 
 class StringTable {
 public:
-	using StringCache = BlockCache<std::string>;
+	using StringCache = BlockCache<std::u16string>;
 
 private:
 	using CacheMap = TypeMap<
-		TypeMapEntry<std::string, StringCache>
+		TypeMapEntry<std::u16string, StringCache>
 	>;
 
 	template<class T>
@@ -27,6 +27,6 @@ public:
 	StringTable(BlockCacheDynamic common_cache, block_ref ref) : string_cache(ref.get_manager()), set(common_cache, common_cache, string_cache, std::move(ref)) {}
 
 public:
-	StringCache& GetStringCache() { return string_cache; }
+	block_view<std::u16string, StringCache> LookUp(block<std::u16string> ref) { return string_cache.read(std::move(ref)); }
 	block<std::u16string> Insert(std::u16string str) { return set.insert(std::move(str)).drop(); }
 };
