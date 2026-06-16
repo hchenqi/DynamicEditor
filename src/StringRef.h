@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Item.h"
+#include "StringTable.h"
 #include "MainWindow.h"
 
 #include <ViewDesign/view/layout/SplitLayout.h>
@@ -24,16 +25,16 @@ private:
 
 public:
 	class View : public Item::View, private Context<MainWindow> {
-	private:
-		StringTable& GetStringTable() { return Context::Get().GetStringTable(); }
-
 	public:
 		View(const std::u16string& str) : Item::View(
 			new SplitLayoutVertical(
 				new TextView(TextView::Style(), str),
 				editor = new Editor(*this, str)
 			)
-		) {}
+		), Context(AsViewBase()) {}
+
+	private:
+		StringTable& GetStringTable() { return Context::Get().GetStringTable(); }
 
 	private:
 		class Editor : public TextEditor {

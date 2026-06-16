@@ -1,36 +1,32 @@
 #pragma once
 
 #include <BlockStore/item/OrderedRefSet.h>
+#include <BlockStore/utility/type_map.h>
 
 
 using namespace BlockStore;
 
 
 class StringTable {
-private:
-	template<class T>
-	struct CacheType {
-		using Type = BlockCacheDynamicAdapter<T>;
-	};
-
-	template<>
-	struct CacheType<std::u16string> {
-		using Type = BlockCache<std::u16string>;
-	};
-
-	template<class T>
-	using Cache = CacheType<T>::Type;
+public:
+	using StringCache = BlockCache<std::string>;
 
 private:
-	BlockCacheDynamic node_leaf_cache;
-	BlockCache<std::u16string> key_cache;
+	using CacheMap = TypeMap<
+		TypeMapEntry<std::string, StringCache>
+	>;
+
+	template<class T>
+	using Cache = MappedTypeOr<CacheMap, T, BlockCacheDynamicAdapter<T>>;
+
+private:
+	StringCache string_cache;
 	OrderedRefSet<std::u16string, Cache> set;
 
 public:
-	StringTable(block_ref ref) : node_leaf_cache(ref.get_manager()), key_cache(ref.get_manager()), set(node_leaf_cache, node_leaf_cache, key_cache, std::move(ref)) {}
+	StringTable(BlockCacheDynamic common_cache, block_ref ref) : string_cache(ref.get_manager()), set(common_cache, common_cache, string_cache, std::move(ref)) {}
 
 public:
-	
-
-
+	StringCache& GetStringCache() { return string_cache; }
+	block<std::u16string> Insert(std::u16string str) { return set.insert(std::move(str)).drop(); }
 };

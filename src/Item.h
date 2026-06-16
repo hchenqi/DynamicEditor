@@ -1,6 +1,7 @@
 #pragma once
 
 #include "History.h"
+#include "MainWindow.h"
 #include "COWRef.h"
 
 #include <BlockStore/data/serializer.h>
@@ -29,17 +30,18 @@ public:
 	virtual Type GetType() const { return -1; }
 
 public:
-	class View : public ViewFrame {
+	class View : public ViewFrame, private Context<MainWindow> {
 	public:
-		using ViewFrame::ViewFrame;
+		View(view_ptr_any child) : ViewFrame(std::move(child)), Context(AsViewBase()) {}
 
 	private:
 		ref_ptr<View> parent = nullptr;
 	protected:
 		void SetChild(View& view) { view.parent = this; }
+		void ResetChild(View& view) { view.parent = nullptr; }
 
 	protected:
-		History& GetHistory() {}
+		History& GetHistory() { return Context::Get().GetHistory(); }
 
 	protected:
 		void UpdateSelf(std::unique_ptr<const Item> item) const { parent->OnChildUpdate(*this, std::move(item)); }
