@@ -1,33 +1,12 @@
 #pragma once
 
 #include "Item.h"
-
-#include <BlockStore/item/OrderedRefSet.h>
+#include "MainWindow.h"
 
 #include <ViewDesign/view/layout/SplitLayout.h>
 #include <ViewDesign/view/control/TextView.h>
 #include <ViewDesign/view/control/TextEditor.h>
 #include <ViewDesign/event/timer.h>
-
-#include <optional>
-#include <chrono>
-
-
-template<class T>
-struct CacheType {
-	using Type = BlockCacheDynamicAdapter<T>;
-};
-
-template<>
-struct CacheType<std::u16string> {
-	using Type = BlockCache<std::u16string>;
-};
-
-template<class T>
-using Cache = CacheType<T>::Type;
-
-
-using StringTable = OrderedRefSet<std::u16string, Cache>;
 
 
 class StringRef : public Item {
@@ -36,18 +15,18 @@ public:
 public:
 	virtual Type GetType() const override { return type; }
 
-private:
-	static StringTable& GetStringTable() {}
-
 public:
-	StringRef(std::u16string str) : str(GetStringTable().insert(std::move(str))) {}
-	StringRef(DeserializeContext& context) : str(GetStringTable().insert(context.access<block<std::u16string>>())) {}
+	StringRef(block<std::u16string> ref) : ref(std::move(ref)) {}
+	StringRef(DeserializeContext& context) : StringRef(context.access<block<std::u16string>>()) {}
 
 private:
-	block_view<std::u16string, StringTable::KeyCache> str;
+	block<std::u16string> ref;
 
 public:
-	class View : public Item::View {
+	class View : public Item::View, private Context<MainWindow> {
+	private:
+		StringTable& GetStringTable() { return Context::Get().GetStringTable(); }
+
 	public:
 		View(const std::u16string& str) : Item::View(
 			new SplitLayoutVertical(

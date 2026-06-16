@@ -1,7 +1,7 @@
 #include "Item.h"
 
-#include "ItemBlock.h"
-#include "String.h"
+#include "ItemBlockRef.h"
+#include "StringRef.h"
 #include "Descriptor.h"
 
 

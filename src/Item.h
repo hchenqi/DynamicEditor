@@ -1,11 +1,10 @@
 #pragma once
 
-#include "COWRef.h"
 #include "History.h"
+#include "COWRef.h"
 
 #include <BlockStore/data/serializer.h>
 
-#include <ViewDesign/common/type.h>
 #include <ViewDesign/view/frame/ViewFrame.h>
 
 #include <functional>
