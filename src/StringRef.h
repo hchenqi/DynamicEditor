@@ -25,12 +25,9 @@ private:
 	block<std::u16string> ref;
 
 private:
-	virtual std::unique_ptr<Item::View> CreateView() const override {
-		return std::make_unique<View>(*this);
-	}
-
+	virtual std::unique_ptr<Item::View> CreateView() const override { return std::make_unique<View>(*this); }
 private:
-	class View : public Item::View, private Context<MainWindow> {
+	class View : public Item::View {
 	public:
 		View(StringRef& item) : Item::View(
 			new LazyLoadFrame([&]() {
@@ -40,7 +37,7 @@ private:
 					editor = new Editor(*this, str.get())
 				);
 			})
-		), Context(AsViewBase()), item(item) {}
+		), item(item) {}
 
 	private:
 		StringRef& item;
@@ -65,6 +62,7 @@ private:
 		ref_ptr<Editor> editor;
 	private:
 		mutable Timer update_timeout = Timer([&]() {
+			update_timeout.Stop();
 			GetHistory().Operation([&]() {
 				UpdateSelf(std::make_unique<StringRef>(GetStringTable().Insert(editor->GetText())));
 			});

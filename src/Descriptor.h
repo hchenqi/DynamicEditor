@@ -9,9 +9,6 @@
 
 class Descriptor : public Item {
 protected:
-	using Type = DescriptorType;
-
-protected:
 	class View : public Item::View, private Context<MainWindow> {
 	protected:
 		std::unique_ptr<Descriptor> ConstructDescriptor(descriptor_ref ref, DeserializeContext& context);
@@ -21,8 +18,10 @@ protected:
 		block_view<DescriptorType, DescriptorRegistry::DescriptorCache> LookUpDescriptor(descriptor_ref ref) const { return GetDescriptorRegistry().LookUp(std::move(ref)); }
 		descriptor_ref RegisterDescriptor(auto descriptor) const { return GetDescriptorRegistry().Insert(DescriptorType(std::move(descriptor))); }
 	public:
-		virtual Type GetDescriptorType() const = 0;
+		virtual descriptor_ref GetDescriptorRef() const = 0;
 	};
+public:
+	View& GetView() const { return static_cast<View&>(Item::GetView()); }
 };
 
 
@@ -33,10 +32,21 @@ public:
 	virtual Type GetType() const override { return type; }
 
 public:
+	DescriptorAny(std::unique_ptr<Descriptor> descriptor) : descriptor_type(descriptor->GetView().GetDescriptorType()), descriptor(std::move(descriptor)) {}
 	DescriptorAny(DeserializeContext& context) : descriptor_type(context.access<descriptor_ref>()) {}
 
 private:
 	descriptor_ref descriptor_type;
+	std::unique_ptr<Descriptor> descriptor;
+
+private:
+	virtual std::unique_ptr<View> CreateView() const override { return std::make_unique<View>(*this); }
+
+private:
+	class View : public Item::View {
+
+	};
+
 };
 
 
@@ -56,7 +66,7 @@ private:
 	private:
 		Type descriptor;
 	public:
-		virtual DescriptorType GetDescriptorType() const override { return RegisterDescriptor(descriptor); }
+		virtual descriptor_ref GetDescriptorRef() const override { return RegisterDescriptor(descriptor); }
 	};
 };
 
@@ -70,7 +80,7 @@ private:
 	private:
 		Type descriptor;
 	public:
-		virtual DescriptorType GetDescriptorType() const override { return RegisterDescriptor(descriptor); }
+		virtual descriptor_ref GetDescriptorRef() const override { return RegisterDescriptor(descriptor); }
 	};
 };
 
@@ -84,7 +94,7 @@ private:
 	private:
 		Type descriptor;
 	public:
-		virtual DescriptorType GetDescriptorType() const override { return RegisterDescriptor(descriptor); }
+		virtual descriptor_ref GetDescriptorRef() const override { return RegisterDescriptor(descriptor); }
 	};
 };
 

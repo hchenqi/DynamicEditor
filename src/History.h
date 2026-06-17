@@ -1,6 +1,7 @@
 #pragma once
 
 #include "item_block_ref.h"
+#include "Item.h"
 
 #include <vector>
 #include <optional>
@@ -10,13 +11,7 @@
 class History {
 private:
 	struct Entry {
-		struct ItemBlock {
-			item_block_ref ref;
-			ItemRef item;
-		};
-
-		std::vector<ItemBlock> item_block_list;
-		
+		std::vector<std::pair<item_block_ref, ItemRef>> item_block_list;
 	};
 private:
 	std::vector<Entry> undo_stack;
@@ -25,16 +20,15 @@ private:
 private:
 	struct Operation {
 		Entry entry;
-		// edit state
 	};
 private:
 	std::optional<Operation> operation;
-
-public:
-	void OnItemBlockUpdate(item_block_ref ref, ) {
-
+private:
+	void CheckOperation() {
+		if (!operation.has_value()) {
+			throw std::logic_error("History: no ongoing operation");
+		}
 	}
-
 public:
 	void BeginOperation() {
 		if (operation.has_value()) {
@@ -42,11 +36,18 @@ public:
 		}
 		operation.emplace();
 	}
+	void OnItemBlockUpdate(item_block_ref ref, ItemRef item) {
+		CheckOperation();
+		operation->entry.item_block_list.emplace_back(std::move(ref), item);
+	}
 	void CancelOperation() {
-
+		CheckOperation();
+		operation.reset();
 	}
 	void EndOperation() {
-		undo_stack
+		CheckOperation();
+		undo_stack.emplace_back(std::move(operation->entry));
+		operation.reset();
 	}
 public:
 	void Operation(auto func) {
@@ -57,7 +58,7 @@ public:
 
 public:
 	void Undo() {
-
+		
 	}
 	void Redo() {
 

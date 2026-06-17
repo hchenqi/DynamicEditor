@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Item.h"
-#include "MainWindow.h"
 
 
 class ItemBlockRef : public Item {
@@ -18,16 +17,13 @@ private:
 	item_block_ref ref;
 
 private:
-	virtual std::unique_ptr<Item::View> CreateView() const override {
-		return std::make_unique<View>(*this);
-	}
-
-public:
-	class View : public Item::View, private Context<MainWindow>, private ContextProvider {
+	virtual std::unique_ptr<Item::View> CreateView() const override { return std::make_unique<View>(*this); }
+private:
+	class View : public Item::View, private ContextProvider {
 	public:
 		View(ItemBlockRef& item) : Item::View(
 			new OpenItemBlockTabButton()
-		), Context(AsViewBase()), ContextProvider(AsViewBase()), item(item) {}
+		), ContextProvider(AsViewBase()), item(item) {}
 
 	private:
 		ItemBlockRef& item;
