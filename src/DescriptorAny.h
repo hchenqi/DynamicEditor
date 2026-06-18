@@ -23,6 +23,10 @@ private:
 private:
 	class View : public Item::View {
 	public:
-		View() : Item::View() {}
+		View(DescriptorAny& item) : Item::View(
+			new ReferenceFrame(
+				item.descriptor->GetView()
+			)
+		) {}
 	};
 };

@@ -1,10 +1,12 @@
 #pragma once
 
+#include "Meta.h"
 #include "COWRef.h"
 
 #include <BlockStore/data/serializer.h>
 
 #include <ViewDesign/view/frame/ViewFrame.h>
+#include <ViewDesign/view/frame/ReferenceFrame.h>
 
 #include <functional>
 
@@ -14,6 +16,16 @@ using namespace ViewDesign;
 
 
 class Item {
+public:
+	class DeserializeContext : public BlockStore::DeserializeContext {
+	public:
+		DeserializeContext(BlockManager& manager, std::vector<std::byte> data, Meta& meta) : BlockStore::DeserializeContext(manager, std::move(data)), meta(meta) {}
+	private:
+		Meta& meta;
+	public:
+		Meta& GetMeta() { return meta; }
+	};
+
 public:
 	using Type = size_t;
 private:

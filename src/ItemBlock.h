@@ -6,38 +6,48 @@
 #include "DescriptorAny.h"
 #include "StringRef.h"
 
-#include <ViewDesign/view/frame/ReferenceFrame.h>
+#include <ViewDesign/view/frame/MutableFrame.h>
+#include <ViewDesign/view/control/Placeholder.h>
 
 
-class ItemBlock : private item_block_ref, private ItemRef, public ViewFrame {
-private:
-	ItemBlock(item_block_ref ref, auto init) : item_block_ref(std::move(ref)), ItemRef(Read(std::move(init))), ViewFrame(new View(*this)) {}
+class ItemBlock : public MutableFrame<Relative, Relative> {
 public:
-	ItemBlock(item_block_ref ref) : ItemBlock(std::move(ref), nullptr) {}
-	ItemBlock(item_block_ref ref, StringTable& string_table) : ItemBlock(std::move(ref), [&]() {
-		return std::make_unique<DescriptorAny>(
-			std::make_unique<ItemDescriptor>(
-				std::make_unique<StringRef>(string_table.Insert(u""))
-			)
-		);
-	}) {}
+	ItemBlock(item_block_ref ref, Meta& meta) : MutableFrame(new Placeholder<Fixed, Fixed>()), ref(std::move(ref)), root(Deserialize(meta)) {
+		Reset(new View(*this));
+	}
 
 private:
-	std::unique_ptr<Item> Read(auto init) const {
-		if (auto data = item_block_ref::read(); data.empty()) {
-			if (init == nullptr) {
-				throw std::logic_error("ItemBlock: data uninitialized");
-			}
-			return init();
+	item_block_ref ref;
+	bool modified = false;
+private:
+	std::unique_ptr<Item> Deserialize(Meta& meta) const {
+		if (auto data = ref.read(); data.empty()) {
+			return std::make_unique<DescriptorAny>(
+				std::make_unique<ItemDescriptor>(
+					std::make_unique<StringRef>(meta.GetStringTable().Insert(u""))
+				)
+			);
 		} else {
-			DeserializeContext context(get_manager(), std::move(data));
+			Item::DeserializeContext context(ref.get_manager(), std::move(data), meta);
 			return Item::Construct(DescriptorAny::type, context);
 		}
 	}
+	void Serialize() {
+		SerializeContext context(ref.get_manager());
+		SerializeChild(context, *item);
+		auto [data, ref_list] = context.Get();
+		if (data.size() > block_size_limit) {
+			throw std::invalid_argument("block size exceeds limit");
+		}
+		ref.write(data, ref_list);
+	}
 
+private:
+	ItemRef root;
 public:
 	void SetRoot(ItemRef root) {
-		ItemRef::operator=(root);
+		this->root = root;
+		Reset(new View(*this));
 	}
 
 private:
@@ -45,7 +55,7 @@ private:
 	public:
 		View(ItemBlock& item_block) : Item::View(
 			new ReferenceFrame(
-				item_block.ItemRef::Get().GetView()
+				item_block.root.Get().GetView()
 			)
 		), item_block(item_block), history_context(*this) {}
 	private:
@@ -53,7 +63,7 @@ private:
 		Context<HistoryContext> history_context;
 	private:
 		virtual void OnChildUpdate(const View& child, std::unique_ptr<const Item> item) const {
-			history_context.Get().OnItemBlockUpdate(item_block, item_block);
+			history_context.Get().OnItemBlockUpdate(item_block.ref, item_block.root);
 			item_block.SetRoot(std::move(item));
 		}
 	};

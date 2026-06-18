@@ -28,5 +28,5 @@ public:
 
 public:
 	block_view<std::u16string, StringCache> LookUp(block<std::u16string> ref) { return string_cache.read(std::move(ref)); }
-	block<std::u16string> Insert(std::u16string str) { return set.insert(std::move(str)).drop(); }
+	block_view<std::u16string, StringCache> Insert(std::u16string str) { return set.insert(std::move(str)); }
 };

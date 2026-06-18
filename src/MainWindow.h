@@ -19,7 +19,7 @@ public:
 		meta_context = new MetaContext(
 			std::move(root),
 			new HistoryContext(
-				tab_view = new MainTabView()
+				tab_view = new TabView(*this)
 			)
 		)
 	), ContextProvider(AsViewBase()) {
@@ -28,13 +28,15 @@ public:
 
 private:
 	ref_ptr<MetaContext> meta_context;
+private:
+	Meta& GetMeta() { return *meta_context; }
 
 private:
-	class MainTabView : public TabView {
+	class TabView : public ViewDesign::TabView {
+	public:
+		TabView(MainWindow& main_window) : ViewDesign::TabView(Style()), main_window(main_window) {}
 	private:
-		friend class MainWindow;
-	private:
-		MainTabView() : TabView(TabView::Style()) {}
+		MainWindow& main_window;
 	private:
 		std::unordered_map<ref_ptr<HeaderFrame>, ref_t> tab_ref_map;
 		std::unordered_map<ref_t, ref_ptr<HeaderFrame>> ref_tab_map;
@@ -56,19 +58,18 @@ private:
 			if (auto it = ref_tab_map.find(ref); it != ref_tab_map.end()) {
 				it->second->Focus();
 			} else {
-				HeaderFrame& tab = Append(Tab(new TabView::DefaultHeaderClosable(u"#" + to_u16string(ref)), new ItemBlock(ref)));
+				HeaderFrame& tab = Append(Tab(new TabView::DefaultHeaderClosable(u"#" + to_u16string(ref)), new ItemBlock(ref, main_window.GetMeta())));
 				tab_ref_map.emplace(&tab, ref);
 				ref_tab_map.emplace(ref, &tab);
 			}
 		}
-	private:
 		void OpenRootItemBlockTab(item_block_ref ref) {
-			HeaderFrame& tab = Append(Tab(new TabView::DefaultHeaderFixed(u"root (#" + to_u16string(ref) + u")"), new ItemBlock(std::move(ref))));
+			HeaderFrame& tab = Append(Tab(new TabView::DefaultHeaderFixed(u"root (#" + to_u16string(ref) + u")"), new ItemBlock(std::move(ref), main_window.GetMeta())));
 			tab_ref_map.emplace(&tab, ref);
 		}
 	};
 private:
-	ref_ptr<MainTabView> tab_view;
+	ref_ptr<TabView> tab_view;
 public:
 	void OpenItemBlockTab(const item_block_ref& ref) { tab_view->OpenItemBlockTab(ref); }
 };

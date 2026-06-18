@@ -4,7 +4,6 @@
 #include "StringTable.h"
 #include "Meta.h"
 #include "History.h"
-#include "LazyLoadFrame.h"
 
 #include <ViewDesign/view/layout/SplitLayout.h>
 #include <ViewDesign/view/control/TextView.h>
@@ -14,8 +13,8 @@
 
 class StringRef : public Item {
 public:
-	StringRef(block<std::u16string> ref) : ref(std::move(ref)) {}
-	StringRef(DeserializeContext& context) : StringRef(context.access<block<std::u16string>>()) {}
+	StringRef(block_view<std::u16string, StringTable::StringCache> str) : str(std::move(str)) {}
+	StringRef(DeserializeContext& context) : StringRef(context.GetMeta().GetStringTable().LookUp(context.access<block<std::u16string>>())) {}
 
 public:
 	static const Type type;
@@ -23,7 +22,7 @@ public:
 	virtual Type GetType() const override { return type; }
 
 private:
-	block<std::u16string> ref;
+	block_view<std::u16string, StringTable::StringCache> str;
 
 private:
 	virtual std::unique_ptr<Item::View> CreateView() const override { return std::make_unique<View>(*this); }
@@ -31,13 +30,10 @@ private:
 	class View : public Item::View {
 	public:
 		View(StringRef& item) : Item::View(
-			new LazyLoadFrame([&]() {
-				auto str = GetStringTable().LookUp(item.ref);
-				return new SplitLayoutVertical(
-					new TextView(TextView::Style(), str.get()),
-					editor = new Editor(*this, str.get())
-				);
-			})
+			new SplitLayoutVertical(
+				new TextView(TextView::Style(), item.str.get()),
+				editor = new Editor(*this, item.str.get())
+			)
 		), item(item), meta_context(*this), history_context(*this) {}
 
 	private:
