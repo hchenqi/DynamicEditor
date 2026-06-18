@@ -2,7 +2,8 @@
 
 #include "Item.h"
 #include "StringTable.h"
-#include "MainWindow.h"
+#include "Meta.h"
+#include "History.h"
 #include "LazyLoadFrame.h"
 
 #include <ViewDesign/view/layout/SplitLayout.h>
@@ -16,7 +17,7 @@ public:
 	StringRef(block<std::u16string> ref) : ref(std::move(ref)) {}
 	StringRef(DeserializeContext& context) : StringRef(context.access<block<std::u16string>>()) {}
 
-private:
+public:
 	static const Type type;
 public:
 	virtual Type GetType() const override { return type; }
@@ -37,13 +38,15 @@ private:
 					editor = new Editor(*this, str.get())
 				);
 			})
-		), item(item) {}
+		), item(item), meta_context(*this), history_context(*this) {}
 
 	private:
 		StringRef& item;
-
 	private:
-		StringTable& GetStringTable() { return Context::Get().GetStringTable(); }
+		Context<MetaContext> meta_context;
+		Context<HistoryContext> history_context;
+	private:
+		StringTable& GetStringTable() { return meta_context.Get().GetStringTable(); }
 
 	private:
 		class Editor : public TextEditor {
@@ -63,7 +66,7 @@ private:
 	private:
 		mutable Timer update_timeout = Timer([&]() {
 			update_timeout.Stop();
-			GetHistory().Operation([&]() {
+			history_context.Get().Operation([&]() {
 				UpdateSelf(std::make_unique<StringRef>(GetStringTable().Insert(editor->GetText())));
 			});
 		});

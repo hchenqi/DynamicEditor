@@ -5,6 +5,9 @@
 #include <CppSerialize/stl/variant.h>
 
 
+using namespace BlockStore;
+
+
 struct DescriptorType;
 
 using descriptor_ref = block<DescriptorType>;

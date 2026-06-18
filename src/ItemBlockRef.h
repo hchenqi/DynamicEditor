@@ -1,6 +1,11 @@
 #pragma once
 
 #include "Item.h"
+#include "item_block_ref.h"
+#include "MainWindow.h"
+
+#include <ViewDesign/view/control/Placeholder.h>
+#include <ViewDesign/view/wrapper/Button.h>
 
 
 class ItemBlockRef : public Item {
@@ -8,7 +13,7 @@ public:
 	ItemBlockRef(item_block_ref ref) : ref(std::move(ref)) {}
 	ItemBlockRef(DeserializeContext& context) : ItemBlockRef(context.access<item_block_ref>()) {}
 
-private:
+public:
 	static const Type type;
 public:
 	virtual Type GetType() const override { return type; }
@@ -23,14 +28,16 @@ private:
 	public:
 		View(ItemBlockRef& item) : Item::View(
 			new OpenItemBlockTabButton()
-		), ContextProvider(AsViewBase()), item(item) {}
+		), ContextProvider(AsViewBase()), item(item), main_window_context(*this) {}
 
 	private:
 		ItemBlockRef& item;
 
 	private:
+		Context<MainWindow> main_window_context;
+	private:
 		void OpenItemBlockTab() {
-			Context::Get().OpenItemBlockTab(item.ref);
+			main_window_context.Get().OpenItemBlockTab(item.ref);
 		}
 
 	private:

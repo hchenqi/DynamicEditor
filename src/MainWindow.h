@@ -1,72 +1,40 @@
 #pragma once
 
-#include "DescriptorRegistry.h"
-#include "StringTable.h"
-#include "ItemBlockCache.h"
+#include "Meta.h"
 #include "History.h"
-#include "Clipboard.h"
+#include "ItemBlock.h"
 
-#include <ViewDesign/view/widget/DefaultWindow.h>
 #include <ViewDesign/view/widget/TabView.h>
-#include <ViewDesign/messaging/context.h>
-#include <ViewDesign/common/holder.h>
 
 #include <unordered_map>
 
+#include <ViewDesign/view/widget/DefaultWindow.h>
 
-class Meta {
-private:
-	struct Data {
-		block_ref descriptor_registry;
-		block_ref string_table;
-		item_block_ref root_item_block;
 
-		friend constexpr auto layout(layout_type<Data>) { return declare(&Data::descriptor_registry, &Data::string_table, &Data::root_item_block); }
-	};
+class MainWindow : public DefaultWindow, private ContextProvider {
 public:
-	Meta(block_ref root) : Meta(static_cast<block<Data>&>(root).read([&]() {
-		auto& manager = root.get_manager();
-		return Data{ manager.allocate(), manager.allocate(), manager.allocate() };
-	})) {}
-private:
-	Meta(Data data) :
-		common_cache(data.root_item_block.get_manager()),
-		item_block_cache(data.root_item_block.get_manager()),
-		descriptor_registry(common_cache, std::move(data.descriptor_registry)),
-		string_table(common_cache, std::move(data.string_table)),
-		root_item_block(std::move(data.root_item_block)) {}
-private:
-	BlockCacheDynamic common_cache;
-	ItemBlockCache item_block_cache;
-private:
-	DescriptorRegistry descriptor_registry;
-	StringTable string_table;
-protected:
-	item_block_ref root_item_block;
-public:
-	ItemBlockCache& GetItemBlockCache() { return item_block_cache; }
-	DescriptorRegistry& GetDescriptorRegistry() { return descriptor_registry; }
-	StringTable& GetStringTable() { return string_table; }
-};
-
-
-class MainWindow : public Meta, public DefaultWindow, private ContextProvider {
-public:
-	MainWindow(block_ref root) : Meta(std::move(root)), DefaultWindow(
+	MainWindow(block_ref root) : DefaultWindow(
 		DefaultWindow::Style(),
 		u"DynamicEditor",
-		tab_view = new TabView(
-			TabView::Style(),
-			TabView::Tab(new TabView::DefaultHeaderFixed(u"clipboard"), clipboard = new Clipboard())
+		meta_context = new MetaContext(
+			std::move(root),
+			new HistoryContext(
+				tab_view = new MainTabView()
+			)
 		)
 	), ContextProvider(AsViewBase()) {
-		tab_view->OpenRootItemBlockTab(std::move(root_item_block));
+		tab_view->OpenRootItemBlockTab(std::move(meta_context->GetRootItemBlock()));
 	}
 
 private:
-	class TabView : public ViewDesign::TabView {
-	public:
-		using ViewDesign::TabView::TabView;
+	ref_ptr<MetaContext> meta_context;
+
+private:
+	class MainTabView : public TabView {
+	private:
+		friend class MainWindow;
+	private:
+		MainTabView() : TabView(TabView::Style()) {}
 	private:
 		std::unordered_map<ref_ptr<HeaderFrame>, ref_t> tab_ref_map;
 		std::unordered_map<ref_t, ref_ptr<HeaderFrame>> ref_tab_map;
@@ -93,23 +61,14 @@ private:
 				ref_tab_map.emplace(ref, &tab);
 			}
 		}
-	public:
+	private:
 		void OpenRootItemBlockTab(item_block_ref ref) {
 			HeaderFrame& tab = Append(Tab(new TabView::DefaultHeaderFixed(u"root (#" + to_u16string(ref) + u")"), new ItemBlock(std::move(ref))));
 			tab_ref_map.emplace(&tab, ref);
 		}
 	};
 private:
-	ref_ptr<TabView> tab_view;
+	ref_ptr<MainTabView> tab_view;
 public:
 	void OpenItemBlockTab(const item_block_ref& ref) { tab_view->OpenItemBlockTab(ref); }
-
-private:
-	History history;
-public:
-	History& GetHistory() { return history; }
-
-private:
-	ref_ptr<Clipboard> clipboard;
-	Clipboard& GetClipboard() { return *clipboard; }
 };

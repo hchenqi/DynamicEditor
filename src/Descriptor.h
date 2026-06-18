@@ -9,13 +9,16 @@
 
 class Descriptor : public Item {
 protected:
-	class View : public Item::View, private Context<MainWindow> {
+	class View : public Item::View {
 	protected:
-		std::unique_ptr<Descriptor> ConstructDescriptor(descriptor_ref ref, DeserializeContext& context);
+		View(view_ptr_any child) : Item::View(std::move(child)), meta_context(*this) {}
 	private:
-		DescriptorRegistry& GetDescriptorRegistry() const { return Context::Get().GetDescriptorRegistry(); }
+		Context<MetaContext> meta_context;
+	private:
+		DescriptorRegistry& GetDescriptorRegistry() const { return meta_context.Get().GetDescriptorRegistry(); }
 	protected:
 		block_view<DescriptorType, DescriptorRegistry::DescriptorCache> LookUpDescriptor(descriptor_ref ref) const { return GetDescriptorRegistry().LookUp(std::move(ref)); }
+		std::unique_ptr<Descriptor> ConstructDescriptor(descriptor_ref ref, DeserializeContext& context);
 		descriptor_ref RegisterDescriptor(auto descriptor) const { return GetDescriptorRegistry().Insert(DescriptorType(std::move(descriptor))); }
 	public:
 		virtual descriptor_ref GetDescriptorRef() const = 0;
@@ -25,38 +28,13 @@ public:
 };
 
 
-class DescriptorAny : public Item {
-public:
-	static const Type type;
-public:
-	virtual Type GetType() const override { return type; }
-
-public:
-	DescriptorAny(std::unique_ptr<Descriptor> descriptor) : descriptor_type(descriptor->GetView().GetDescriptorType()), descriptor(std::move(descriptor)) {}
-	DescriptorAny(DeserializeContext& context) : descriptor_type(context.access<descriptor_ref>()) {}
-
-private:
-	descriptor_ref descriptor_type;
-	std::unique_ptr<Descriptor> descriptor;
-
-private:
-	virtual std::unique_ptr<View> CreateView() const override { return std::make_unique<View>(*this); }
-
-private:
-	class View : public Item::View {
-
-	};
-
-};
-
-
 class ItemDescriptor : public Descriptor {
 public:
 	using Type = ItemDescriptorType;
 
 public:
-	ItemDescriptor(std::unique_ptr<Item> item) {}
-	ItemDescriptor(Type type, DeserializeContext& context) : type(type), {}
+	ItemDescriptor(std::unique_ptr<Item> item) : item(std::move(item)) {}
+	ItemDescriptor(Type type, DeserializeContext& context) : item(Item::Construct(type, context)) {}
 
 private:
 	ItemRef item;

@@ -18,11 +18,11 @@ private:
 	std::vector<Entry> redo_stack;
 
 private:
-	struct Operation {
+	struct OperationTemp {
 		Entry entry;
 	};
 private:
-	std::optional<Operation> operation;
+	std::optional<OperationTemp> operation;
 private:
 	void CheckOperation() {
 		if (!operation.has_value()) {
@@ -63,4 +63,15 @@ public:
 	void Redo() {
 
 	}
+};
+
+
+#include <ViewDesign/view/frame/ViewFrame.h>
+#include <ViewDesign/messaging/context.h>
+
+using namespace ViewDesign;
+
+class HistoryContext : public History, public ViewFrame, public SizeTrait<Fixed, Fixed>, private ContextProvider {
+public:
+	HistoryContext(view_ptr<Fixed, Fixed> child) : ViewFrame(std::move(child)), ContextProvider(AsViewBase()) {}
 };
