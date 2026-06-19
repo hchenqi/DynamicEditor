@@ -20,30 +20,35 @@ public:
 
 private:
 	item_block_ref ref;
+private:
+	virtual void Serialize(SerializeContext& context) const override { context.access(ref); }
 
 private:
-	virtual std::unique_ptr<Item::View> CreateView() const override { return std::make_unique<View>(*this); }
+	virtual std::unique_ptr<Item::View> CreateView() const override { return std::make_unique<View>(ref); }
+
 private:
-	class View : public Item::View, private ContextProvider {
+	class View : public Item::View {
 	public:
-		View(ItemBlockRef& item) : Item::View(
-			new OpenItemBlockTabButton()
-		), ContextProvider(AsViewBase()), item(item), main_window_context(*this) {}
+		View(item_block_ref ref) : Item::View(
+			new OpenItemBlockTabButton(*this)
+		), ref(std::move(ref)), main_window_context(*this) {}
 
 	private:
-		ItemBlockRef& item;
+		item_block_ref ref;
 
 	private:
 		Context<MainWindow> main_window_context;
 	private:
 		void OpenItemBlockTab() {
-			main_window_context.Get().OpenItemBlockTab(item.ref);
+			main_window_context.Get().OpenItemBlockTab(ref);
 		}
 
 	private:
-		class OpenItemBlockTabButton : public Button<Placeholder<Auto, Auto>>, private Context<View> {
+		class OpenItemBlockTabButton : public Button<Placeholder<Auto, Auto>> {
 		public:
-			OpenItemBlockTabButton() : Base(Size(20.0f, 20.0f)), Context(AsViewBase()) {}
+			OpenItemBlockTabButton(View& view) : Base(Size(20.0f, 20.0f)), view(view) {}
+		private:
+			View& view;
 		private:
 			static constexpr Color background_normal = color_transparent;
 			static constexpr Color background_hovered = ColorCode::Gray;
@@ -66,7 +71,7 @@ private:
 			virtual void OnPress() override { SetBackground(background_pressed); }
 			virtual void OnLeave() override { SetBackground(background_normal); }
 		private:
-			virtual void OnClick() override { Context::Get().OpenItemBlockTab(); }
+			virtual void OnClick() override { view.OpenItemBlockTab(); }
 		};
 	};
 };

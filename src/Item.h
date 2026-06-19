@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Meta.h"
+#include "ItemType.h"
 #include "COWRef.h"
 
 #include <BlockStore/data/serializer.h>
@@ -27,23 +28,29 @@ public:
 	};
 
 public:
-	using Type = size_t;
+	using Type = ItemType;
 private:
 	static Type RegisterType(std::function<std::unique_ptr<Item>(DeserializeContext&)> constructor);
-public:
-	static std::unique_ptr<Item> Construct(Type type, DeserializeContext& context);
 protected:
 	template<class Derived>
 	static Type RegisterType() {
 		return RegisterType([](DeserializeContext& context) { return std::make_unique<Derived>(context); });
 	}
 public:
-	virtual Type GetType() const { return -1; }
+	static std::unique_ptr<Item> Construct(const Type& type, DeserializeContext& context);
+public:
+	virtual Type GetType() const { return item_type_undefined; }
 
 public:
-	class View : public ViewFrame {
+	virtual void Serialize(SerializeContext& context) const = 0;
+
+public:
+	class View : public ViewFrame, public SizeTrait<Relative, Relative> {
 	protected:
-		View(view_ptr_any child) : ViewFrame(std::move(child)) {}
+		using child_type = view_ptr<Relative, Relative>;
+
+	protected:
+		View(child_type child) : ViewFrame(std::move(child)) {}
 
 	private:
 		ref_ptr<View> parent = nullptr;

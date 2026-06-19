@@ -34,10 +34,10 @@ private:
 	}
 	void Serialize() {
 		SerializeContext context(ref.get_manager());
-		SerializeChild(context, *item);
+		root.Get().Serialize(context);
 		auto [data, ref_list] = context.Get();
 		if (data.size() > block_size_limit) {
-			throw std::invalid_argument("block size exceeds limit");
+			throw std::logic_error("block size exceeds limit");
 		}
 		ref.write(data, ref_list);
 	}
@@ -46,6 +46,7 @@ private:
 	ItemRef root;
 public:
 	void SetRoot(ItemRef root) {
+		modified = true;
 		this->root = root;
 		Reset(new View(*this));
 	}

@@ -5,6 +5,8 @@
 #include "Meta.h"
 #include "History.h"
 
+#include <CppSerialize/stl/string.h>
+
 #include <ViewDesign/view/layout/SplitLayout.h>
 #include <ViewDesign/view/control/TextView.h>
 #include <ViewDesign/view/control/TextEditor.h>
@@ -23,21 +25,22 @@ public:
 
 private:
 	block_view<std::u16string, StringTable::StringCache> str;
+private:
+	virtual void Serialize(SerializeContext& context) const override { context.access(str.get()); }
 
 private:
-	virtual std::unique_ptr<Item::View> CreateView() const override { return std::make_unique<View>(*this); }
+	virtual std::unique_ptr<Item::View> CreateView() const override { return std::make_unique<View>(str.get()); }
+
 private:
 	class View : public Item::View {
 	public:
-		View(StringRef& item) : Item::View(
+		View(const std::u16string& str) : Item::View(
 			new SplitLayoutVertical(
-				new TextView(TextView::Style(), item.str.get()),
-				editor = new Editor(*this, item.str.get())
+				new TextView(TextView::Style(), str),
+				editor = new Editor(*this, str)
 			)
-		), item(item), meta_context(*this), history_context(*this) {}
+		), meta_context(*this), history_context(*this) {}
 
-	private:
-		StringRef& item;
 	private:
 		Context<MetaContext> meta_context;
 		Context<HistoryContext> history_context;

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "ItemType.h"
+
 #include <BlockStore/item/OrderedRefSet.h>
 #include <BlockStore/utility/type_map.h>
 #include <CppSerialize/stl/variant.h>
@@ -12,7 +14,7 @@ struct DescriptorType;
 
 using descriptor_ref = block<DescriptorType>;
 
-using ItemDescriptorType = size_t;
+using ItemDescriptorType = ItemType;
 using TupleDescriptorType = std::vector<descriptor_ref>;
 using DynamicLengthArrayDescriptorType = descriptor_ref;
 
@@ -42,5 +44,5 @@ public:
 
 public:
 	block_view<DescriptorType, DescriptorCache> LookUp(descriptor_ref ref) { return descriptor_cache.read(std::move(ref)); }
-	descriptor_ref Insert(DescriptorType descriptor) { return set.insert(std::move(descriptor)).drop(); }
+	block_view<DescriptorType, DescriptorCache> Insert(DescriptorType descriptor) { return set.insert(std::move(descriptor)); }
 };

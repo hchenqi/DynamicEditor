@@ -18,7 +18,7 @@ Item::Type Item::RegisterType(std::function<std::unique_ptr<Item>(DeserializeCon
 	return type;
 }
 
-std::unique_ptr<Item> Item::Construct(Type type, DeserializeContext& context) {
+std::unique_ptr<Item> Item::Construct(const Type& type, DeserializeContext& context) {
 	if (type >= item_type_registry.size()) {
 		throw std::logic_error("Item: type not registered");
 	}
