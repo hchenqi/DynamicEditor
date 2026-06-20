@@ -66,7 +66,7 @@ private:
 		mutable Timer update_timeout = Timer([&]() {
 			update_timeout.Stop();
 			history_context.Get().Operation([&]() {
-				UpdateSelf(std::make_unique<StringRef>(GetStringTable().Insert(editor->GetText())));
+				Update(std::make_unique<StringRef>(GetStringTable().Insert(editor->GetText())));
 			});
 		});
 	private:

@@ -20,10 +20,11 @@ private:
 	item_block_ref ref;
 	bool modified = false;
 private:
-	std::unique_ptr<Item> Deserialize(Meta& meta) const {
+	std::unique_ptr<const Item> Deserialize(Meta& meta) const {
 		if (auto data = ref.read(); data.empty()) {
 			return std::make_unique<DescriptorAny>(
 				std::make_unique<ItemDescriptor>(
+					meta.GetDescriptorRegistry().Insert(DescriptorType(ItemDescriptor::Type(StringRef::type))),
 					std::make_unique<StringRef>(meta.GetStringTable().Insert(u""))
 				)
 			);
@@ -43,9 +44,9 @@ private:
 	}
 
 private:
-	ItemRef root;
+	Item::Ref root;
 public:
-	void SetRoot(ItemRef root) {
+	void SetRoot(Item::Ref root) {
 		modified = true;
 		this->root = root;
 		Reset(new View(*this));

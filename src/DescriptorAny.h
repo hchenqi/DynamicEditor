@@ -5,8 +5,8 @@
 
 class DescriptorAny : public Item {
 public:
-	DescriptorAny(block_view<DescriptorType, DescriptorRegistry::DescriptorCache> descriptor, std::unique_ptr<Descriptor> child) : descriptor(std::move(descriptor)), child(std::move(child)) {}
-	DescriptorAny(DeserializeContext& context) : descriptor(context.GetMeta().GetDescriptorRegistry().LookUp(context.access<descriptor_ref>())), child(Descriptor::Construct(descriptor.get(), context)) {}
+	DescriptorAny(std::unique_ptr<const Descriptor> child) : child(std::move(child)) {}
+	DescriptorAny(DeserializeContext& context) : DescriptorAny(Descriptor::Construct(context.GetMeta().GetDescriptorRegistry().LookUp(context.access<descriptor_ref>()), context)) {}
 
 public:
 	static const Type type;
@@ -14,11 +14,10 @@ public:
 	virtual Type GetType() const override { return type; }
 
 private:
-	block_view<DescriptorType, DescriptorRegistry::DescriptorCache> descriptor;
-	std::unique_ptr<Descriptor> child;
+	std::unique_ptr<const Descriptor> child;
 private:
 	virtual void Serialize(SerializeContext& context) const override {
-		context.access(descriptor);
+		context.access(child->GetDescriptorRef());
 		child->Serialize(context);
 	}
 
@@ -28,10 +27,14 @@ private:
 private:
 	class View : public Item::View {
 	public:
-		View(Descriptor::View& view) : Item::View(
+		View(Item::View& view) : Item::View(
 			new ReferenceFrame(
 				view
 			)
 		) {}
+	private:
+		virtual void OnChildUpdate(const View& child, std::unique_ptr<const Item> item) const {
+			Update(std::make_unique<DescriptorAny>(Descriptor::AsDescriptor(std::move(item))));
+		}
 	};
 };

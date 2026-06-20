@@ -7,18 +7,18 @@
 
 namespace {
 
-std::vector<std::function<std::unique_ptr<Item>(DeserializeContext&)>> item_type_registry = {};
+std::vector<std::function<std::unique_ptr<const Item>(Item::DeserializeContext&)>> item_type_registry = {};
 
 } // namespace
 
 
-Item::Type Item::RegisterType(std::function<std::unique_ptr<Item>(DeserializeContext&)> constructor) {
+Item::Type Item::RegisterType(std::function<std::unique_ptr<const Item>(DeserializeContext&)> constructor) {
 	Item::Type type = item_type_registry.size();
 	item_type_registry.emplace_back(std::move(constructor));
 	return type;
 }
 
-std::unique_ptr<Item> Item::Construct(const Type& type, DeserializeContext& context) {
+std::unique_ptr<const Item> Item::Construct(const Type& type, DeserializeContext& context) {
 	if (type >= item_type_registry.size()) {
 		throw std::logic_error("Item: type not registered");
 	}

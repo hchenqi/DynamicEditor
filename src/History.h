@@ -11,7 +11,7 @@
 class History {
 private:
 	struct Entry {
-		std::vector<std::pair<item_block_ref, ItemRef>> item_block_list;
+		std::vector<std::pair<item_block_ref, Item::Ref>> item_block_list;
 	};
 private:
 	std::vector<Entry> undo_stack;
@@ -36,7 +36,7 @@ public:
 		}
 		operation.emplace();
 	}
-	void OnItemBlockUpdate(item_block_ref ref, ItemRef item) {
+	void OnItemBlockUpdate(item_block_ref ref, Item::Ref item) {
 		CheckOperation();
 		operation->entry.item_block_list.emplace_back(std::move(ref), item);
 	}

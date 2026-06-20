@@ -30,14 +30,14 @@ public:
 public:
 	using Type = ItemType;
 private:
-	static Type RegisterType(std::function<std::unique_ptr<Item>(DeserializeContext&)> constructor);
+	static Type RegisterType(std::function<std::unique_ptr<const Item>(DeserializeContext&)> constructor);
 protected:
 	template<class Derived>
 	static Type RegisterType() {
 		return RegisterType([](DeserializeContext& context) { return std::make_unique<Derived>(context); });
 	}
 public:
-	static std::unique_ptr<Item> Construct(const Type& type, DeserializeContext& context);
+	static std::unique_ptr<const Item> Construct(const Type& type, DeserializeContext& context);
 public:
 	virtual Type GetType() const { return item_type_undefined; }
 
@@ -59,7 +59,7 @@ public:
 		void ResetChild(View& view) { view.parent = nullptr; }
 
 	protected:
-		void UpdateSelf(std::unique_ptr<const Item> item) const { parent->OnChildUpdate(*this, std::move(item)); }
+		void Update(std::unique_ptr<const Item> item) const { parent->OnChildUpdate(*this, std::move(item)); }
 	protected:
 		virtual void OnChildUpdate(const View& child, std::unique_ptr<const Item> item) const {}
 	};
@@ -70,7 +70,7 @@ protected:
 	virtual std::unique_ptr<View> CreateView() const = 0;
 public:
 	View& GetView() const { if (view == nullptr) { view = CreateView(); } return *view; }
+
+public:
+	using Ref = COWRef<Item>;
 };
-
-
-using ItemRef = COWRef<Item>;
