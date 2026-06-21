@@ -4,16 +4,16 @@
 #include "History.h"
 #include "ItemBlock.h"
 
+#include <ViewDesign/view/widget/DefaultWindow.h>
 #include <ViewDesign/view/widget/TabView.h>
+#include <ViewDesign/view/wrapper/Background.h>
 
 #include <unordered_map>
 
-#include <ViewDesign/view/widget/DefaultWindow.h>
 
-
-class MainWindow : public DefaultWindow, private ContextProvider {
+class MainWindow : public DefaultBackground<DefaultWindow>, private ContextProvider {
 public:
-	MainWindow(block_ref root) : DefaultWindow(
+	MainWindow(block_ref root) : Base(
 		DefaultWindow::Style(),
 		u"DynamicEditor",
 		meta_context = new MetaContext(
@@ -23,7 +23,7 @@ public:
 			)
 		)
 	), ContextProvider(AsViewBase()) {
-		tab_view->OpenRootItemBlockTab(std::move(meta_context->GetRootItemBlock()));
+		tab_view->OpenRootItemBlockTab(meta_context->GetRootItemBlock());
 	}
 
 private:
@@ -63,8 +63,8 @@ private:
 				ref_tab_map.emplace(ref, &tab);
 			}
 		}
-		void OpenRootItemBlockTab(item_block_ref ref) {
-			HeaderFrame& tab = Append(Tab(new TabView::DefaultHeaderFixed(u"root (#" + to_u16string(ref) + u")"), new ItemBlock(std::move(ref), main_window.GetMeta())));
+		void OpenRootItemBlockTab(const item_block_ref& ref) {
+			HeaderFrame& tab = Append(Tab(new TabView::DefaultHeaderFixed(u"root (#" + to_u16string(ref) + u")"), new ItemBlock(ref, main_window.GetMeta())));
 			tab_ref_map.emplace(&tab, ref);
 		}
 	};

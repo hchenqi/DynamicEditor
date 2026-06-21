@@ -24,7 +24,7 @@ private:
 	OrderedRefSet<std::u16string, Cache> set;
 
 public:
-	StringTable(BlockCacheDynamic common_cache, block_ref ref) : string_cache(ref.get_manager()), set(common_cache, common_cache, string_cache, std::move(ref)) {}
+	StringTable(BlockCacheDynamic& common_cache, block_ref ref) : string_cache(ref.get_manager()), set(common_cache, common_cache, string_cache, std::move(ref)) {}
 
 public:
 	block_view<std::u16string, StringCache> LookUp(block<std::u16string> ref) { return string_cache.read(std::move(ref)); }

@@ -40,7 +40,7 @@ private:
 	OrderedRefSet<DescriptorType, Cache> set;
 
 public:
-	DescriptorRegistry(BlockCacheDynamic common_cache, block_ref ref) : descriptor_cache(ref.get_manager()), set(common_cache, common_cache, descriptor_cache, std::move(ref)) {}
+	DescriptorRegistry(BlockCacheDynamic& common_cache, block_ref ref) : descriptor_cache(ref.get_manager()), set(common_cache, common_cache, descriptor_cache, std::move(ref)) {}
 
 public:
 	block_view<DescriptorType, DescriptorCache> LookUp(descriptor_ref ref) { return descriptor_cache.read(std::move(ref)); }
