@@ -46,27 +46,26 @@ private:
 private:
 	Item::Ref root;
 public:
-	void SetRoot(Item::Ref root) {
+	Item::Ref SetRoot(Item::Ref root) {
+		std::swap(this->root, root);
 		modified = true;
-		this->root = root;
-		Reset(new View(*this));
+		MutableFrame::Reset(new View(*this));
+		return root;
 	}
 
 private:
 	class View : public Item::View {
 	public:
 		View(ItemBlock& item_block) : Item::View(
-			new ReferenceFrame(
-				item_block.root.Get().GetView()
-			)
+			new Item::ViewRef(*this, item_block.root.Get().GetView())
 		), item_block(item_block), history_context(*this) {}
 	private:
 		ItemBlock& item_block;
 		Context<HistoryContext> history_context;
 	private:
-		virtual void OnChildUpdate(const View& child, std::unique_ptr<const Item> item) const {
-			history_context.Get().OnItemBlockUpdate(item_block.ref, item_block.root);
-			item_block.SetRoot(std::move(item));
+		virtual void OnChildUpdate(const Item::View& child, std::unique_ptr<const Item> item) const override {
+			ItemBlock& item_block = this->item_block;
+			history_context.Get().OnItemBlockUpdate(item_block.ref, item_block.SetRoot(std::move(item)));
 		}
 	};
 };

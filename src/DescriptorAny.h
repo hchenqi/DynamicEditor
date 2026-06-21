@@ -28,12 +28,10 @@ private:
 	class View : public Item::View {
 	public:
 		View(Item::View& view) : Item::View(
-			new ReferenceFrame(
-				view
-			)
+			new ViewRef(*this, view)
 		) {}
 	private:
-		virtual void OnChildUpdate(const View& child, std::unique_ptr<const Item> item) const {
+		virtual void OnChildUpdate(const Item::View& child, std::unique_ptr<const Item> item) const override {
 			Update(std::make_unique<DescriptorAny>(Descriptor::AsDescriptor(std::move(item))));
 		}
 	};

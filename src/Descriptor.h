@@ -62,12 +62,10 @@ private:
 	class View : public Descriptor::View {
 	public:
 		View(Item::View& view) : Descriptor::View(
-			new ReferenceFrame(
-				view
-			)
+			new ViewRef(*this, view)
 		) {}
 	private:
-		virtual void OnChildUpdate(const View& child, std::unique_ptr<const Item> item) const {
+		virtual void OnChildUpdate(const Item::View& child, std::unique_ptr<const Item> item) const override {
 			Update(std::make_unique<ItemDescriptor>(RegisterDescriptor(item->GetType()), std::move(item)));
 		}
 	};
@@ -108,7 +106,7 @@ private:
 						list.emplace_back(
 							new MinFrame<Relative, Auto>(
 								length_zero,
-								new ReferenceFrame(descriptor.Get().GetView())
+								new ViewRef(*this, descriptor.Get().GetView())
 							)
 						);
 					}
@@ -119,7 +117,7 @@ private:
 	private:
 		const std::vector<Descriptor::Ref>& descriptor_list;
 	private:
-		virtual void OnChildUpdate(const View& child, std::unique_ptr<const Item> item) const {
+		virtual void OnChildUpdate(const Item::View& child, std::unique_ptr<const Item> item) const override {
 			Type type; type.reserve(this->descriptor_list.size());
 			std::vector<Descriptor::Ref> descriptor_list; descriptor_list.reserve(this->descriptor_list.size());
 			for (const auto& descriptor : this->descriptor_list) {
@@ -175,7 +173,7 @@ private:
 						list.emplace_back(
 							new MinFrame<Relative, Auto>(
 								length_zero,
-								new ReferenceFrame(descriptor.Get().GetView())
+								new ViewRef(*this, descriptor.Get().GetView())
 							)
 						);
 					}
@@ -186,7 +184,7 @@ private:
 	private:
 		const DynamicLengthArrayDescriptor& item;
 	private:
-		virtual void OnChildUpdate(const View& child, std::unique_ptr<const Item> child_item) const {
+		virtual void OnChildUpdate(const Item::View& child, std::unique_ptr<const Item> child_item) const override {
 			auto child_descriptor = AsDescriptor(std::move(child_item));
 			if (child_descriptor->GetDescriptorRef() != item.type) {
 				throw std::invalid_argument("DynamicLengthArrayDescriptor: child type mismatch");
