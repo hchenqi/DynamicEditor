@@ -2,6 +2,7 @@
 
 #include <BlockStore/item/OrderedRefSet.h>
 #include <BlockStore/utility/type_map.h>
+#include <CppSerialize/stl/string.h>
 
 
 using namespace BlockStore;

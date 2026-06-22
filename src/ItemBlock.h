@@ -48,7 +48,7 @@ private:
 public:
 	Item::Ref SetRoot(Item::Ref root) {
 		std::swap(this->root, root);
-		modified = true;
+		Serialize();
 		MutableFrame::Reset(new View(*this));
 		return root;
 	}
