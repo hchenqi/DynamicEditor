@@ -35,14 +35,3 @@ public:
 	StringTable& GetStringTable() { return string_table; }
 	const item_block_ref& GetRootItemBlock() { return root_item_block; }
 };
-
-
-#include <ViewDesign/view/frame/ViewFrame.h>
-#include <ViewDesign/messaging/context.h>
-
-using namespace ViewDesign;
-
-class MetaContext : public Meta, public ViewFrame, public SizeTrait<Fixed, Fixed>, private ContextProvider {
-public:
-	MetaContext(block_ref root, view_ptr<Fixed, Fixed> child) : Meta(std::move(root)), ViewFrame(std::move(child)), ContextProvider(AsViewBase()) {}
-};

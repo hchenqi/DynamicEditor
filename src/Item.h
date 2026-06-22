@@ -1,18 +1,14 @@
 #pragma once
 
-#include "Meta.h"
 #include "ItemType.h"
-#include "COWRef.h"
+#include "ItemRef.h"
+#include "MainWindow.h"
 
 #include <BlockStore/data/serializer.h>
 
 #include <ViewDesign/view/frame/ViewFrame.h>
 
 #include <functional>
-
-
-using namespace BlockStore;
-using namespace ViewDesign;
 
 
 class Item {
@@ -46,15 +42,19 @@ public:
 public:
 	class ViewRef;
 
-	class View : public ViewFrame, public SizeTrait<Relative, Relative> {
+	class View : public ViewFrame, public SizeTrait<Relative, Relative>, private Context<MainWindow> {
 	private:
 		friend class ViewRef;
 	protected:
 		using child_type = view_ptr<Relative, Relative>;
 	protected:
-		View(child_type child) : ViewFrame(std::move(child)) {}
+		View(child_type child) : ViewFrame(std::move(child)), Context(AsViewBase()) {}
 	private:
 		ref_ptr<View> parent = nullptr;
+	protected:
+		MainWindow& GetMainWindow() const { return Context::Get(); }
+		Meta& GetMeta() const { return Context::Get().GetMeta(); }
+		History& GetHistory() const { return Context::Get().GetHistory(); }
 	protected:
 		void Update(std::unique_ptr<const Item> item) const { parent->OnChildUpdate(*this, std::move(item)); }
 	protected:
@@ -65,8 +65,6 @@ public:
 	public:
 		ViewRef(View& parent, View& child) : parent(parent), child(child) {}
 		virtual ~ViewRef() override { CheckResetChild(); }
-
-		// view
 	private:
 		View& parent;
 		View& child;
@@ -110,7 +108,4 @@ protected:
 	virtual std::unique_ptr<View> CreateView() const = 0;
 public:
 	View& GetView() const { if (view == nullptr) { view = CreateView(); } return *view; }
-
-public:
-	using Ref = COWRef<Item>;
 };

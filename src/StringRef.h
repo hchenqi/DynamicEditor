@@ -37,13 +37,7 @@ private:
 				new TextView(TextView::Style(), str),
 				editor = new Editor(*this, str)
 			)
-		), meta_context(*this), history_context(*this) {}
-
-	private:
-		Context<MetaContext> meta_context;
-		Context<HistoryContext> history_context;
-	private:
-		StringTable& GetStringTable() { return meta_context.Get().GetStringTable(); }
+		) {}
 
 	private:
 		class Editor : public TextEditor {
@@ -63,8 +57,8 @@ private:
 	private:
 		mutable Timer update_timeout = Timer([&]() {
 			update_timeout.Stop();
-			history_context.Get().Operation([&]() {
-				Update(std::make_unique<StringRef>(GetStringTable().Insert(editor->GetText())));
+			GetHistory().Operation([&]() {
+				Update(std::make_unique<StringRef>(GetMeta().GetStringTable().Insert(editor->GetText())));
 			});
 		});
 	private:

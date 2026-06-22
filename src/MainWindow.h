@@ -2,13 +2,16 @@
 
 #include "Meta.h"
 #include "History.h"
-#include "ItemBlock.h"
 
 #include <ViewDesign/view/widget/DefaultWindow.h>
 #include <ViewDesign/view/widget/TabView.h>
 #include <ViewDesign/view/wrapper/Background.h>
+#include <ViewDesign/messaging/context.h>
 
 #include <unordered_map>
+
+
+using namespace ViewDesign;
 
 
 class MainWindow : public DefaultBackground<DefaultWindow>, private ContextProvider {
@@ -16,20 +19,17 @@ public:
 	MainWindow(block_ref root) : Base(
 		DefaultWindow::Style(),
 		u"DynamicEditor",
-		meta_context = new MetaContext(
-			std::move(root),
-			new HistoryContext(
-				tab_view = new TabView(*this)
-			)
-		)
-	), ContextProvider(AsViewBase()) {
-		tab_view->OpenRootItemBlockTab(meta_context->GetRootItemBlock());
+		tab_view = new TabView(*this)
+	), ContextProvider(AsViewBase()), meta(std::move(root)) {
+		tab_view->OpenRootItemBlockTab(meta.GetRootItemBlock());
 	}
 
 private:
-	ref_ptr<MetaContext> meta_context;
-private:
-	Meta& GetMeta() { return *meta_context; }
+	Meta meta;
+	History history;
+public:
+	Meta& GetMeta() { return meta; }
+	History& GetHistory() { return history; }
 
 private:
 	class TabView : public ViewDesign::TabView {
@@ -54,19 +54,8 @@ private:
 			return std::u16string(s.begin(), s.end());
 		}
 	public:
-		void OpenItemBlockTab(const item_block_ref& ref) {
-			if (auto it = ref_tab_map.find(ref); it != ref_tab_map.end()) {
-				it->second->Focus();
-			} else {
-				HeaderFrame& tab = Append(Tab(new TabView::DefaultHeaderClosable(u"#" + to_u16string(ref)), new ItemBlock(ref, main_window.GetMeta())));
-				tab_ref_map.emplace(&tab, ref);
-				ref_tab_map.emplace(ref, &tab);
-			}
-		}
-		void OpenRootItemBlockTab(const item_block_ref& ref) {
-			HeaderFrame& tab = Append(Tab(new TabView::DefaultHeaderFixed(u"root (#" + to_u16string(ref) + u")"), new ItemBlock(ref, main_window.GetMeta())));
-			tab_ref_map.emplace(&tab, ref);
-		}
+		void OpenItemBlockTab(const item_block_ref& ref);
+		void OpenRootItemBlockTab(const item_block_ref& ref);
 	};
 private:
 	ref_ptr<TabView> tab_view;

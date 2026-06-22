@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Item.h"
-#include "DescriptorRegistry.h"
 
 #include <ViewDesign/view/frame/MinFrame.h>
 #include <ViewDesign/view/layout/ListLayout.h>
@@ -30,11 +29,9 @@ public:
 public:
 	class View : public Item::View {
 	protected:
-		View(child_type child) : Item::View(std::move(child)), meta_context(*this) {}
-	private:
-		Context<MetaContext> meta_context;
+		View(child_type child) : Item::View(std::move(child)) {}
 	protected:
-		Type RegisterDescriptor(auto type) const { return meta_context.Get().GetDescriptorRegistry().Insert(DescriptorType(std::move(type))); }
+		Type RegisterDescriptor(auto type) const { return GetMeta().GetDescriptorRegistry().Insert(DescriptorType(std::move(type))); }
 	};
 
 public:
@@ -51,7 +48,7 @@ public:
 	ItemDescriptor(Descriptor::Type descriptor, const Type& type, DeserializeContext& context) : ItemDescriptor(std::move(descriptor), Item::Construct(type, context)) {}
 
 private:
-	Item::Ref item;
+	ItemRef item;
 private:
 	virtual void Serialize(SerializeContext& context) const override { item.Get().Serialize(context); }
 

@@ -2,7 +2,6 @@
 
 #include "item_block_ref.h"
 #include "Item.h"
-#include "History.h"
 #include "DescriptorAny.h"
 #include "StringRef.h"
 
@@ -44,9 +43,9 @@ private:
 	}
 
 private:
-	Item::Ref root;
+	ItemRef root;
 public:
-	Item::Ref SetRoot(Item::Ref root) {
+	ItemRef SetRoot(ItemRef root) {
 		std::swap(this->root, root);
 		Serialize();
 		MutableFrame::Reset(new View(*this));
@@ -58,14 +57,13 @@ private:
 	public:
 		View(ItemBlock& item_block) : Item::View(
 			new Item::ViewRef(*this, item_block.root.Get().GetView())
-		), item_block(item_block), history_context(*this) {}
+		), item_block(item_block) {}
 	private:
 		ItemBlock& item_block;
-		Context<HistoryContext> history_context;
 	private:
 		virtual void OnChildUpdate(const Item::View& child, std::unique_ptr<const Item> item) const override {
 			ItemBlock& item_block = this->item_block;
-			history_context.Get().OnItemBlockUpdate(item_block.ref, item_block.SetRoot(std::move(item)));
+			GetHistory().OnItemBlockUpdate(item_block.ref, item_block.SetRoot(std::move(item)));
 		}
 	};
 };

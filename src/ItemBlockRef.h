@@ -31,16 +31,14 @@ private:
 	public:
 		View(item_block_ref ref) : Item::View(
 			new OpenItemBlockTabButton(*this)
-		), ref(std::move(ref)), main_window_context(*this) {}
+		), ref(std::move(ref)) {}
 
 	private:
 		item_block_ref ref;
 
 	private:
-		Context<MainWindow> main_window_context;
-	private:
 		void OpenItemBlockTab() {
-			main_window_context.Get().OpenItemBlockTab(ref);
+			GetMainWindow().OpenItemBlockTab(ref);
 		}
 
 	private:
