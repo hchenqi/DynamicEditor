@@ -14,13 +14,15 @@
 using namespace ViewDesign;
 
 
+class ItemBlock;
+
 class MainWindow : public DefaultBackground<DefaultWindow>, private ContextProvider {
 public:
 	MainWindow(block_ref root) : Base(
 		DefaultWindow::Style(),
 		u"DynamicEditor",
 		tab_view = new TabView(*this)
-	), ContextProvider(AsViewBase()), meta(std::move(root)) {
+	), ContextProvider(AsViewBase()), meta(std::move(root)), history(*this) {
 		tab_view->OpenRootItemBlockTab(meta.GetRootItemBlock());
 	}
 
@@ -39,7 +41,7 @@ private:
 		MainWindow& main_window;
 	private:
 		std::unordered_map<ref_ptr<HeaderFrame>, ref_t> tab_ref_map;
-		std::unordered_map<ref_t, ref_ptr<HeaderFrame>> ref_tab_map;
+		std::unordered_map<ref_t, std::pair<ref_ptr<HeaderFrame>, ref_ptr<ItemBlock>>> ref_tab_map;
 	private:
 		virtual void OnTabClose(HeaderFrame& tab) override {
 			if (auto it = tab_ref_map.find(&tab); it != tab_ref_map.end()) {
@@ -54,11 +56,11 @@ private:
 			return std::u16string(s.begin(), s.end());
 		}
 	public:
-		void OpenItemBlockTab(const item_block_ref& ref);
 		void OpenRootItemBlockTab(const item_block_ref& ref);
+		ItemBlock& OpenItemBlockTab(const item_block_ref& ref);
 	};
 private:
 	ref_ptr<TabView> tab_view;
 public:
-	void OpenItemBlockTab(const item_block_ref& ref) { tab_view->OpenItemBlockTab(ref); }
+	ItemBlock& OpenItemBlockTab(const item_block_ref& ref) { return tab_view->OpenItemBlockTab(ref); }
 };

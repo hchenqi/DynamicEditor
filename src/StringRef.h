@@ -50,6 +50,18 @@ private:
 				TextEditor::OnTextUpdate();
 				view.OnTextUpdate();
 			}
+		private:
+			virtual void OnKeyEvent(KeyEvent event) override {
+				TextEditor::OnKeyEvent(event);
+				switch (event.type) {
+				case KeyEvent::KeyDown:
+					switch (event.key) {
+					case Key::Char('Z'): if (key_tracker.ctrl) { view.GetHistory().Undo(); } break;
+					case Key::Char('Y'): if (key_tracker.ctrl) { view.GetHistory().Redo(); } break;
+					}
+					break;
+				}
+			}
 		};
 
 	private:

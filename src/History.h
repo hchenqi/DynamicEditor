@@ -7,10 +7,15 @@
 #include <optional>
 
 
+class MainWindow;
+
 class History {
 public:
-	History();
+	History(MainWindow& main_window);
 	~History();
+
+private:
+	MainWindow& main_window;
 
 private:
 	struct Entry {
