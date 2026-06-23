@@ -43,9 +43,9 @@ private:
 	}
 
 private:
-	ItemRef root;
+	ItemPtr root;
 public:
-	ItemRef SetRoot(ItemRef root) {
+	ItemPtr SetRoot(ItemPtr root) {
 		std::swap(this->root, root);
 		Serialize();
 		MutableFrame::Reset(new View(*this));

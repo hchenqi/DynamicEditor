@@ -1,7 +1,7 @@
 #pragma once
 
 #include "item_block_ref.h"
-#include "ItemRef.h"
+#include "ItemPtr.h"
 
 #include <vector>
 #include <optional>
@@ -19,7 +19,7 @@ private:
 
 private:
 	struct Entry {
-		std::vector<std::pair<item_block_ref, ItemRef>> item_block_list;
+		std::vector<std::pair<item_block_ref, ItemPtr>> item_block_list;
 	};
 private:
 	std::vector<Entry> undo_stack;
@@ -35,7 +35,7 @@ private:
 	void CheckOperation();
 public:
 	void BeginOperation();
-	void OnItemBlockUpdate(item_block_ref ref, ItemRef item);
+	void OnItemBlockUpdate(item_block_ref ref, ItemPtr item);
 	void CancelOperation();
 	void EndOperation();
 public:

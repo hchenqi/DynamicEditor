@@ -1,7 +1,7 @@
 #pragma once
 
 #include "ItemType.h"
-#include "ItemRef.h"
+#include "ItemPtr.h"
 #include "MainWindow.h"
 
 #include <BlockStore/data/serializer.h>

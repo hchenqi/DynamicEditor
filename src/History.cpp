@@ -22,7 +22,7 @@ void History::BeginOperation() {
 	operation.emplace();
 }
 
-void History::OnItemBlockUpdate(item_block_ref ref, ItemRef item) {
+void History::OnItemBlockUpdate(item_block_ref ref, ItemPtr item) {
 	CheckOperation();
 	operation->entry.item_block_list.emplace_back(std::move(ref), std::move(item));
 }

@@ -35,7 +35,7 @@ public:
 	};
 
 public:
-	using Ref = COWRef<Descriptor>;
+	using Ptr = RefOrOwner<Descriptor>;
 };
 
 
@@ -48,7 +48,7 @@ public:
 	ItemDescriptor(Descriptor::Type descriptor, const Type& type, DeserializeContext& context) : ItemDescriptor(std::move(descriptor), Item::Construct(type, context)) {}
 
 private:
-	ItemRef item;
+	ItemPtr item;
 private:
 	virtual void Serialize(SerializeContext& context) const override { item.Get().Serialize(context); }
 
@@ -74,9 +74,9 @@ public:
 	using Type = TupleDescriptorType;
 
 public:
-	TupleDescriptor(Descriptor::Type descriptor, std::vector<Descriptor::Ref> child_list) : Descriptor(std::move(descriptor)), child_list(std::move(child_list)) {}
+	TupleDescriptor(Descriptor::Type descriptor, std::vector<Descriptor::Ptr> child_list) : Descriptor(std::move(descriptor)), child_list(std::move(child_list)) {}
 	TupleDescriptor(Descriptor::Type descriptor, const Type& type, DeserializeContext& context) : TupleDescriptor(std::move(descriptor), [&]() {
-		std::vector<Descriptor::Ref> child_list; child_list.reserve(type.size());
+		std::vector<Descriptor::Ptr> child_list; child_list.reserve(type.size());
 		for (const auto& child_ref : type) {
 			child_list.emplace_back(Construct(context.GetMeta().GetDescriptorRegistry().LookUp(child_ref), context));
 		}
@@ -84,7 +84,7 @@ public:
 	}()) {}
 
 private:
-	std::vector<Descriptor::Ref> child_list;
+	std::vector<Descriptor::Ptr> child_list;
 private:
 	virtual void Serialize(SerializeContext& context) const override { for (auto& descriptor : child_list) { descriptor.Get().Serialize(context); } }
 
@@ -94,7 +94,7 @@ private:
 private:
 	class View : public Descriptor::View {
 	public:
-		View(const std::vector<Descriptor::Ref>& descriptor_list) : Descriptor::View(
+		View(const std::vector<Descriptor::Ptr>& descriptor_list) : Descriptor::View(
 			new ListLayoutVertical(
 				0.0f,
 				[&]() {
@@ -112,11 +112,11 @@ private:
 			)
 		), descriptor_list(descriptor_list) {}
 	private:
-		const std::vector<Descriptor::Ref>& descriptor_list;
+		const std::vector<Descriptor::Ptr>& descriptor_list;
 	private:
 		virtual void OnChildUpdate(const Item::View& child, std::unique_ptr<const Item> item) const override {
 			Type type; type.reserve(this->descriptor_list.size());
-			std::vector<Descriptor::Ref> descriptor_list; descriptor_list.reserve(this->descriptor_list.size());
+			std::vector<Descriptor::Ptr> descriptor_list; descriptor_list.reserve(this->descriptor_list.size());
 			for (const auto& descriptor : this->descriptor_list) {
 				if (&descriptor.Get().GetView() == &child) {
 					auto descriptor = AsDescriptor(std::move(item));
@@ -138,11 +138,11 @@ public:
 	using Type = DynamicLengthArrayDescriptorType;
 
 public:
-	DynamicLengthArrayDescriptor(Descriptor::Type descriptor, Type type, std::vector<Descriptor::Ref> child_list) : Descriptor(std::move(descriptor)), type(type), child_list(std::move(child_list)) {}
+	DynamicLengthArrayDescriptor(Descriptor::Type descriptor, Type type, std::vector<Descriptor::Ptr> child_list) : Descriptor(std::move(descriptor)), type(type), child_list(std::move(child_list)) {}
 	DynamicLengthArrayDescriptor(Descriptor::Type descriptor, const Type& type, DeserializeContext& context) : DynamicLengthArrayDescriptor(std::move(descriptor), type, [&]() {
 		auto descriptor = context.GetMeta().GetDescriptorRegistry().LookUp(type);
 		size_t size = context.access<size_t>();
-		std::vector<Descriptor::Ref> child_list; child_list.reserve(size);
+		std::vector<Descriptor::Ptr> child_list; child_list.reserve(size);
 		for (size_t i = 0; i < size; ++i) {
 			child_list.emplace_back(Construct(descriptor, context));
 		}
@@ -151,7 +151,7 @@ public:
 
 private:
 	Type type;
-	std::vector<Descriptor::Ref> child_list;
+	std::vector<Descriptor::Ptr> child_list;
 private:
 	virtual void Serialize(SerializeContext& context) const override { context.access<size_t>(child_list.size()); for (auto& descriptor : child_list) { descriptor.Get().Serialize(context); } }
 
@@ -186,7 +186,7 @@ private:
 			if (child_descriptor->GetDescriptorRef() != item.type) {
 				throw std::invalid_argument("DynamicLengthArrayDescriptor: child type mismatch");
 			}
-			std::vector<Descriptor::Ref> descriptor_list; descriptor_list.reserve(item.child_list.size());
+			std::vector<Descriptor::Ptr> descriptor_list; descriptor_list.reserve(item.child_list.size());
 			for (const auto& descriptor : item.child_list) {
 				if (&descriptor.Get().GetView() == &child) {
 					descriptor_list.emplace_back(std::move(child_descriptor));
