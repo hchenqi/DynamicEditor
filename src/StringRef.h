@@ -5,6 +5,7 @@
 #include "Meta.h"
 #include "History.h"
 
+#include <ViewDesign/view/frame/PaddingFrame.h>
 #include <ViewDesign/view/layout/SplitLayout.h>
 #include <ViewDesign/view/control/TextView.h>
 #include <ViewDesign/view/control/TextEditor.h>
@@ -35,7 +36,10 @@ private:
 		View(const std::u16string& str) : Item::View(
 			new SplitLayoutVertical(
 				new TextView(TextView::Style(), str),
-				editor = new Editor(*this, str)
+				new PaddingFrame(
+					Padding(5.0f),
+					editor = new Editor(*this, str)
+				)
 			)
 		) {}
 
@@ -69,9 +73,7 @@ private:
 	private:
 		mutable Timer update_timeout = Timer([&]() {
 			update_timeout.Stop();
-			GetHistory().Operation([&]() {
-				Update(std::make_unique<StringRef>(GetMeta().GetStringTable().Insert(editor->GetText())));
-			});
+			GetHistory().Operation([&]() { Update(std::make_unique<StringRef>(GetMeta().GetStringTable().Insert(editor->GetText()))); });
 		});
 	private:
 		void OnTextUpdate() const {

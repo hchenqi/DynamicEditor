@@ -4,8 +4,7 @@
 #include "item_block_ref.h"
 #include "MainWindow.h"
 
-#include <ViewDesign/view/control/Placeholder.h>
-#include <ViewDesign/view/wrapper/Button.h>
+#include <ViewDesign/view/widget/FilledButton.h>
 
 
 class ItemBlockRef : public Item {
@@ -29,47 +28,10 @@ private:
 private:
 	class View : public Item::View {
 	public:
-		View(item_block_ref ref) : Item::View(
-			new OpenItemBlockTabButton(*this)
-		), ref(std::move(ref)) {}
-
+		View(const item_block_ref& ref) : Item::View(
+			new OpenItemBlockTabButton(OpenItemBlockTabButton::Style(), [&] { GetMainWindow().OpenItemBlockTab(ref); }, Size(20.0f, 20.0f))
+		) {}
 	private:
-		item_block_ref ref;
-
-	private:
-		void OpenItemBlockTab() {
-			GetMainWindow().OpenItemBlockTab(ref);
-		}
-
-	private:
-		class OpenItemBlockTabButton : public Button<Placeholder<Auto, Auto>> {
-		public:
-			OpenItemBlockTabButton(View& view) : Base(Size(20.0f, 20.0f)), view(view) {}
-		private:
-			View& view;
-		private:
-			static constexpr Color background_normal = color_transparent;
-			static constexpr Color background_hovered = ColorCode::Gray;
-			static constexpr Color background_pressed = ColorCode::DimGray;
-		private:
-			Color background = background_normal;
-		private:
-			void SetBackground(Color background) {
-				if (this->background != background) {
-					this->background = background;
-					Redraw(rect_infinite);
-				}
-			}
-		private:
-			virtual void OnDraw(Canvas& canvas, Rect draw_region) override {
-				canvas.draw(point_zero, new Rectangle(size, background));
-			}
-		private:
-			virtual void OnHover() override { SetBackground(background_hovered); }
-			virtual void OnPress() override { SetBackground(background_pressed); }
-			virtual void OnLeave() override { SetBackground(background_normal); }
-		private:
-			virtual void OnClick() override { view.OpenItemBlockTab(); }
-		};
+		using OpenItemBlockTabButton = FilledButton<Auto, Auto>;
 	};
 };

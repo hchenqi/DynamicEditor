@@ -2,8 +2,13 @@
 
 #include "Item.h"
 
+#include <ViewDesign/view/frame/FixedFrame.h>
+#include <ViewDesign/view/frame/InnerBorderFrame.h>
 #include <ViewDesign/view/frame/MinFrame.h>
+#include <ViewDesign/view/layout/SplitLayout.h>
+#include <ViewDesign/view/layout/DivideLayout.h>
 #include <ViewDesign/view/layout/ListLayout.h>
+#include <ViewDesign/view/widget/FilledButton.h>
 
 #include <algorithm>
 
@@ -29,9 +34,14 @@ public:
 public:
 	class View : public Item::View {
 	protected:
-		View(child_type child) : Item::View(std::move(child)) {}
+		View(const Descriptor& item, child_type child);
 	protected:
 		Type RegisterDescriptor(auto type) const { return GetMeta().GetDescriptorRegistry().Insert(DescriptorType(std::move(type))); }
+	private:
+		class ConvertButton : public FilledButton<Fixed, Fixed> {
+		public:
+			ConvertButton(std::function<void()> callback) : FilledButton(Style(), std::move(callback)) {}
+		};
 	};
 
 public:
@@ -44,22 +54,26 @@ public:
 	using Type = ItemDescriptorType;
 
 public:
-	ItemDescriptor(Descriptor::Type descriptor, std::unique_ptr<const Item> item) : Descriptor(std::move(descriptor)), item(std::move(item)) {}
+	ItemDescriptor(Descriptor::Type descriptor, std::unique_ptr<const Item> child) : Descriptor(std::move(descriptor)), child(std::move(child)) {}
 	ItemDescriptor(Descriptor::Type descriptor, const Type& type, DeserializeContext& context) : ItemDescriptor(std::move(descriptor), Item::Construct(type, context)) {}
 
 private:
-	ItemPtr item;
+	ItemPtr child;
 private:
-	virtual void Serialize(SerializeContext& context) const override { item.Get().Serialize(context); }
+	virtual void Serialize(SerializeContext& context) const override { child.Get().Serialize(context); }
 
 private:
-	virtual std::unique_ptr<Item::View> CreateView() const override { return std::make_unique<View>(item.Get().GetView()); }
+	virtual std::unique_ptr<Item::View> CreateView() const override { return std::make_unique<View>(*this); }
 
 private:
 	class View : public Descriptor::View {
 	public:
-		View(Item::View& view) : Descriptor::View(
-			new ViewRef(*this, view)
+		View(const ItemDescriptor& item) : Descriptor::View(
+			item,
+			new InnerBorderFrame(
+				Border(1.0f, ColorCode::Green),
+				new ViewRef(*this, item.child.Get().GetView())
+			)
 		) {}
 	private:
 		virtual void OnChildUpdate(const Item::View& child, std::unique_ptr<const Item> item) const override {
@@ -89,45 +103,49 @@ private:
 	virtual void Serialize(SerializeContext& context) const override { for (auto& descriptor : child_list) { descriptor.Get().Serialize(context); } }
 
 private:
-	virtual std::unique_ptr<Item::View> CreateView() const override { return std::make_unique<View>(child_list); }
+	virtual std::unique_ptr<Item::View> CreateView() const override { return std::make_unique<View>(*this); }
 
 private:
 	class View : public Descriptor::View {
 	public:
-		View(const std::vector<Descriptor::Ptr>& descriptor_list) : Descriptor::View(
-			new ListLayoutVertical(
-				0.0f,
-				[&]() {
-					std::vector<view_ptr<Relative, Auto>> list; list.reserve(descriptor_list.size());
-					for (const auto& descriptor : descriptor_list) {
-						list.emplace_back(
-							new MinFrame<Relative, Auto>(
-								length_zero,
-								new ViewRef(*this, descriptor.Get().GetView())
-							)
-						);
-					}
-					return list;
-				}()
+		View(const TupleDescriptor& item) : Descriptor::View(
+			item,
+			new InnerBorderFrame(
+				Border(1.0f, ColorCode::Orange),
+				new ListLayoutVertical(
+					0.0f,
+					[&]() {
+						std::vector<view_ptr<Relative, Auto>> list; list.reserve(item.child_list.size());
+						for (const auto& descriptor : item.child_list) {
+							list.emplace_back(
+								new MinFrame<Relative, Auto>(
+									length_zero,
+									new ViewRef(*this, descriptor.Get().GetView())
+								)
+							);
+						}
+						return list;
+					}()
+				)
 			)
-		), descriptor_list(descriptor_list) {}
+		), item(item) {}
 	private:
-		const std::vector<Descriptor::Ptr>& descriptor_list;
+		const TupleDescriptor& item;
 	private:
-		virtual void OnChildUpdate(const Item::View& child, std::unique_ptr<const Item> item) const override {
-			Type type; type.reserve(this->descriptor_list.size());
-			std::vector<Descriptor::Ptr> descriptor_list; descriptor_list.reserve(this->descriptor_list.size());
-			for (const auto& descriptor : this->descriptor_list) {
+		virtual void OnChildUpdate(const Item::View& child, std::unique_ptr<const Item> child_item) const override {
+			Type type; type.reserve(item.child_list.size());
+			std::vector<Descriptor::Ptr> child_list; child_list.reserve(item.child_list.size());
+			for (const auto& descriptor : item.child_list) {
 				if (&descriptor.Get().GetView() == &child) {
-					auto descriptor = AsDescriptor(std::move(item));
-					type.emplace_back(descriptor->GetDescriptorRef());
-					descriptor_list.emplace_back(std::move(descriptor));
+					auto child_descriptor = AsDescriptor(std::move(child_item));
+					type.emplace_back(child_descriptor->GetDescriptorRef());
+					child_list.emplace_back(std::move(child_descriptor));
 				} else {
 					type.emplace_back(descriptor.Get().GetDescriptorRef());
-					descriptor_list.emplace_back(descriptor);
+					child_list.emplace_back(descriptor);
 				}
 			}
-			Update(std::make_unique<TupleDescriptor>(RegisterDescriptor(std::move(type)), std::move(descriptor_list)));
+			Update(std::make_unique<TupleDescriptor>(RegisterDescriptor(std::move(type)), std::move(child_list)));
 		}
 	};
 };
@@ -162,20 +180,24 @@ private:
 	class View : public Descriptor::View {
 	public:
 		View(const DynamicLengthArrayDescriptor& item) : Descriptor::View(
-			new ListLayoutVertical(
-				0.0f,
-				[&]() {
-					std::vector<view_ptr<Relative, Auto>> list; list.reserve(item.child_list.size());
-					for (const auto& descriptor : item.child_list) {
-						list.emplace_back(
-							new MinFrame<Relative, Auto>(
-								length_zero,
-								new ViewRef(*this, descriptor.Get().GetView())
-							)
-						);
-					}
-					return list;
-				}()
+			item,
+			new InnerBorderFrame(
+				Border(1.0f, ColorCode::Yellow),
+				new ListLayoutVertical(
+					0.0f,
+					[&]() {
+						std::vector<view_ptr<Relative, Auto>> list; list.reserve(item.child_list.size());
+						for (const auto& descriptor : item.child_list) {
+							list.emplace_back(
+								new MinFrame<Relative, Auto>(
+									length_zero,
+									new ViewRef(*this, descriptor.Get().GetView())
+								)
+							);
+						}
+						return list;
+					}()
+				)
 			)
 		), item(item) {}
 	private:
@@ -209,3 +231,18 @@ using DescriptorMap = TypeMap<
 inline std::unique_ptr<const Descriptor> Descriptor::Construct(Type descriptor, DeserializeContext& context) {
 	return std::visit([&](const auto& type) -> std::unique_ptr<const Descriptor> { return std::make_unique<MappedType<DescriptorMap, std::remove_cvref_t<decltype(type)>>>(std::move(descriptor), type, context); }, descriptor.get());
 }
+
+
+inline Descriptor::View::View(const Descriptor& item, child_type child) : Item::View(
+	new SplitLayoutVertical(
+		new FixedFrame<Fixed, Auto>(
+			30.0f,
+			new DivideLayoutHorizontal(
+				create<ConvertButton>([&] { GetHistory().Operation([&]() { Update(std::make_unique<TupleDescriptor>(RegisterDescriptor(TupleDescriptor::Type({ item.GetDescriptorRef() })), std::vector<Descriptor::Ptr>({ item }))); }); }),
+				create<ConvertButton>([&] {}),
+				create<ConvertButton>([&] {})
+			)
+		),
+		std::move(child)
+	)
+) {}
