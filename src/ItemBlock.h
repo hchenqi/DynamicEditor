@@ -23,8 +23,7 @@ private:
 		if (auto data = ref.read(); data.empty()) {
 			return std::make_unique<DescriptorAny>(
 				std::make_unique<ItemDescriptor>(
-					meta.GetDescriptorRegistry().Insert(DescriptorType(ItemDescriptor::Type(StringRef::type))),
-					std::make_unique<StringRef>(meta.GetStringTable().Insert(u""))
+					meta.GetDescriptorRegistry(), std::make_unique<StringRef>(meta.GetStringTable().Insert(u""))
 				)
 			);
 		} else {
@@ -34,7 +33,7 @@ private:
 	}
 	void Serialize() {
 		SerializeContext context(ref.get_manager());
-		root.Get().Serialize(context);
+		root->Serialize(context);
 		auto [data, ref_list] = context.Get();
 		if (data.size() > block_size_limit) {
 			throw std::logic_error("block size exceeds limit");
@@ -56,7 +55,7 @@ private:
 	class View : public Item::View {
 	public:
 		View(ItemBlock& item_block) : Item::View(
-			new Item::ViewRef(*this, item_block.root.Get().GetView())
+			new Item::ViewRef(*this, item_block.root->GetView())
 		), item_block(item_block) {}
 	private:
 		ItemBlock& item_block;

@@ -19,4 +19,5 @@ public:
 	void operator=(RefOrOwner&& other) { ref = other.ref; ptr = std::move(other.ptr); }
 public:
 	const T& Get() const { return ref.get(); }
+	const T* operator->() const { return &ref.get(); }
 };
