@@ -4,7 +4,7 @@
 
 #include <ViewDesign/view/frame/FixedFrame.h>
 #include <ViewDesign/view/frame/InnerBorderFrame.h>
-#include <ViewDesign/view/frame/MinFrame.h>
+#include <ViewDesign/view/frame/MaxFrame.h>
 #include <ViewDesign/view/layout/SplitLayout.h>
 #include <ViewDesign/view/layout/DivideLayout.h>
 #include <ViewDesign/view/layout/ListLayout.h>
@@ -131,8 +131,8 @@ private:
 						std::vector<view_ptr<Relative, Auto>> list; list.reserve(item.child_list.size());
 						for (const auto& descriptor : item.child_list) {
 							list.emplace_back(
-								new MinFrame<Relative, Auto>(
-									length_zero,
+								new MaxFrame<Relative, Auto>(
+									length_infinite,
 									new ViewRef(*this, descriptor->GetView())
 								)
 							);
@@ -217,8 +217,8 @@ private:
 						std::vector<view_ptr<Relative, Auto>> list; list.reserve(item.child_list.size());
 						for (const auto& descriptor : item.child_list) {
 							list.emplace_back(
-								new MinFrame<Relative, Auto>(
-									length_zero,
+								new MaxFrame<Relative, Auto>(
+									length_infinite,
 									new ViewRef(*this, descriptor->GetView())
 								)
 							);
