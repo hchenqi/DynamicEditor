@@ -23,7 +23,7 @@ protected:
 private:
 	Type descriptor;
 public:
-	descriptor_ref GetDescriptorRef() const { return descriptor; }
+	const descriptor_ref& GetDescriptorRef() const { return descriptor; }
 public:
 	static std::unique_ptr<const Descriptor> Construct(Type descriptor, DeserializeContext& context);
 public:
@@ -96,6 +96,11 @@ public:
 		}
 		return type;
 	}()))), child_list(std::move(child_list)) {}
+	TupleDescriptor(DescriptorRegistry& registry, auto&&... child) : TupleDescriptor(registry, [&] {
+		std::vector<Descriptor::Ptr> child_list; child_list.reserve(sizeof...(child));
+		(child_list.emplace_back(std::move(child)), ...);
+		return child_list;
+	}()) {}
 	TupleDescriptor(Descriptor::Type descriptor, std::vector<Descriptor::Ptr> child_list) : Descriptor(std::move(descriptor)), child_list(std::move(child_list)) {}
 	TupleDescriptor(Descriptor::Type descriptor, const Type& type, DeserializeContext& context) : TupleDescriptor(std::move(descriptor), [&] {
 		std::vector<Descriptor::Ptr> child_list; child_list.reserve(type.size());
@@ -161,7 +166,13 @@ public:
 	using Type = DynamicLengthArrayDescriptorType;
 
 public:
-	DynamicLengthArrayDescriptor(DescriptorRegistry& registry, Type type, std::vector<Descriptor::Ptr> child_list) : Descriptor(registry.Insert(DescriptorType(type))), type(std::move(type)), child_list(std::move(child_list)) {}
+	DynamicLengthArrayDescriptor(DescriptorRegistry& registry, Type type, std::vector<Descriptor::Ptr> child_list) : Descriptor(registry.Insert(DescriptorType(type))), type(std::move(type)), child_list(std::move(child_list)) { CheckChildType(this->type, this->child_list); }
+	DynamicLengthArrayDescriptor(DescriptorRegistry& registry, Type type, auto&&... child) : DynamicLengthArrayDescriptor(registry, std::move(type), [&] {
+		std::vector<Descriptor::Ptr> child_list; child_list.reserve(sizeof...(child));
+		(child_list.emplace_back(std::move(child)), ...);
+		return child_list;
+	}()) {}
+	DynamicLengthArrayDescriptor(DescriptorRegistry& registry, Descriptor::Ptr first, auto&&... rest) : DynamicLengthArrayDescriptor(registry, first->GetDescriptorRef(), std::move(first), std::forward<decltype(rest)>(rest)...) {}
 	DynamicLengthArrayDescriptor(Descriptor::Type descriptor, Type type, std::vector<Descriptor::Ptr> child_list) : Descriptor(std::move(descriptor)), type(std::move(type)), child_list(std::move(child_list)) {}
 	DynamicLengthArrayDescriptor(Descriptor::Type descriptor, const Type& type, DeserializeContext& context) : DynamicLengthArrayDescriptor(std::move(descriptor), type, [&] {
 		auto descriptor = context.GetMeta().GetDescriptorRegistry().LookUp(type);
@@ -173,6 +184,17 @@ public:
 		return child_list;
 	}()) {}
 
+private:
+	static void CheckChildType(const Type& type, const Descriptor::Ptr& child) {
+		if (child->GetDescriptorRef() != type) {
+			throw std::invalid_argument("DynamicLengthArrayDescriptor: child type mismatch");
+		}
+	}
+	static void CheckChildType(const Type& type, const std::vector<Descriptor::Ptr>& child_list) {
+		for (auto& child : child_list) {
+			CheckChildType(type, child);
+		}
+	}
 private:
 	Type type;
 	std::vector<Descriptor::Ptr> child_list;
@@ -210,10 +232,8 @@ private:
 		const DynamicLengthArrayDescriptor& item;
 	private:
 		virtual void OnChildUpdate(const Item::View& child, std::unique_ptr<const Item> child_item) const override {
-			auto child_descriptor = AsDescriptor(std::move(child_item));
-			if (child_descriptor->GetDescriptorRef() != item.type) {
-				throw std::invalid_argument("DynamicLengthArrayDescriptor: child type mismatch");
-			}
+			Descriptor::Ptr child_descriptor = AsDescriptor(std::move(child_item));
+			CheckChildType(item.type, child_descriptor);
 			std::vector<Descriptor::Ptr> descriptor_list; descriptor_list.reserve(item.child_list.size());
 			for (const auto& descriptor : item.child_list) {
 				if (&descriptor->GetView() == &child) {
@@ -244,7 +264,7 @@ inline Descriptor::View::View(const Descriptor& item, child_type child) : Item::
 		new FixedFrame<Fixed, Auto>(
 			30.0f,
 			new DivideLayoutHorizontal(
-				create<ConvertButton>([&] { GetHistory().Operation([&] { Update(std::make_unique<TupleDescriptor>(GetDescriptorRegistry(), std::vector<Descriptor::Ptr>({ item }))); }); }),
+				create<ConvertButton>([&] { GetHistory().Operation([&] { Update(std::make_unique<TupleDescriptor>(GetDescriptorRegistry(), item)); }); }),
 				create<ConvertButton>([&] {}),
 				create<ConvertButton>([&] {})
 			)
