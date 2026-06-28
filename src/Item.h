@@ -13,6 +13,9 @@
 
 class Item {
 public:
+	virtual ~Item() = default;
+
+public:
 	class DeserializeContext : public BlockStore::DeserializeContext {
 	public:
 		DeserializeContext(BlockManager& manager, std::vector<std::byte> data, Meta& meta) : BlockStore::DeserializeContext(manager, std::move(data)), meta(meta) {}

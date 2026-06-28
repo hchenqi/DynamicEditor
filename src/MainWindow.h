@@ -6,6 +6,7 @@
 #include <ViewDesign/view/widget/DefaultWindow.h>
 #include <ViewDesign/view/widget/TabView.h>
 #include <ViewDesign/view/wrapper/Background.h>
+#include <ViewDesign/common/holder.h>
 #include <ViewDesign/messaging/context.h>
 
 #include <unordered_map>
@@ -16,22 +17,23 @@ using namespace ViewDesign;
 
 class ItemBlock;
 
-class MainWindow : public DefaultBackground<DefaultWindow>, private ContextProvider {
+class MainWindow : private Holder<Meta>, private Holder<History>, public DefaultBackground<DefaultWindow>, private ContextProvider {
 public:
-	MainWindow(block_ref root) : Base(
-		DefaultWindow::Style(),
-		u"DynamicEditor",
-		tab_view = new TabView(*this)
-	), ContextProvider(AsViewBase()), meta(std::move(root)), history(*this) {
-		tab_view->OpenRootItemBlockTab(meta.GetRootItemBlock());
+	MainWindow(block_ref root) :
+		Holder<Meta>(std::move(root)),
+		Holder<History>(*this),
+		Base(
+			DefaultWindow::Style(),
+			u"DynamicEditor",
+			tab_view = new TabView(*this)
+		),
+		ContextProvider(AsViewBase()) {
+		tab_view->OpenRootItemBlockTab(GetMeta().GetRootItemBlock());
 	}
 
-private:
-	Meta meta;
-	History history;
 public:
-	Meta& GetMeta() { return meta; }
-	History& GetHistory() { return history; }
+	Meta& GetMeta() { return Holder<Meta>::value; }
+	History& GetHistory() { return Holder<History>::value; }
 
 private:
 	class TabView : public ViewDesign::TabView {
